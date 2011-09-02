@@ -71,11 +71,12 @@
     (make)
 
     (make install)
-    (mvn ~(print-str "install:install-file -Dfile=/usr/local/share/java/zmq.jar"
-                     "-DgroupId=org.zeromq"
-                     "-DartifactId=zmq"
-                     (format "-Dversion=%s" version)
-                     "-Dpackaging=jar")))))
+;;    (mvn ~(print-str "install:install-file -Dfile=/usr/local/share/java/zmq.jar"
+;;                     "-DgroupId=org.zeromq"
+;;                     "-DartifactId=zmq"
+;;                     (format "-Dversion=%s" version)
+;;                     "-Dpackaging=jar"))
+                     )))
 
 (defn iptables-accept
   "Accept zeromq connections, by default on port 5672"
