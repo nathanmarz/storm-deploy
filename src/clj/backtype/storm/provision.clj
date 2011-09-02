@@ -47,6 +47,17 @@
     (spit (str conf-dir "/storm.yaml") storm-yaml)
     (spit (str conf-dir "/supervisor.yaml") supervisor-yaml)))
 
+(defn attach! [aws name]
+  (println "Attaching to Available Cluster...")
+  (sync-storm-conf-dir aws name)
+  (authorizeme aws (jclouds-group "nimbus-" name) 80)
+  (authorizeme aws (jclouds-group "nimbus-" name) (node/storm-conf "nimbus.thrift.port"))
+  (authorizeme aws (jclouds-group "nimbus-" name) 8080)
+
+
+  ;; TODO: should probably move this out of this deploy
+  (authorizeme aws (jclouds-group "nimbus-" name) 3772)  ;; drpc 
+  (println "Attaching Complete."))
 
 (defn start-with-nodes! [aws name nimbus supervisor zookeeper]
   (let [nimbus (node/nimbus name nimbus)
@@ -66,7 +77,7 @@
 
     (lift nimbus :compute aws :phase [:post-configure :exec])
     (lift supervisor :compute aws :phase [:post-configure :exec])
-    (sync-storm-conf-dir aws name)
+    (attach! aws name)
     (println "Provisioning Complete.")
     (print-all-ips! aws name)))
 
@@ -74,18 +85,6 @@
   (start-with-nodes! aws name (node/nimbus-server-spec name) (node/supervisor-server-spec name) node/zookeeper-server-spec)
   )
 
-
-(defn attach! [aws name]
-  (println "Attaching to Available Cluster...")
-  (sync-storm-conf-dir aws name)
-  (authorizeme aws (jclouds-group "nimbus-" name) 80)
-  (authorizeme aws (jclouds-group "nimbus-" name) (node/storm-conf "nimbus.thrift.port"))
-  (authorizeme aws (jclouds-group "nimbus-" name) 8080)
-
-
-  ;; TODO: should probably move this out of this deploy
-  (authorizeme aws (jclouds-group "nimbus-" name) 3772)  ;; drpc 
-  (println "Attaching Complete."))
 
 (defn stop! [aws name]
   (println "Shutting Down nodes...")
