@@ -1,0 +1,25 @@
+################################################################################
+# CLUSTERS CONFIG FILE
+################################################################################
+
+github.privatekey: "/Users/nathan/.ssh/storm"
+
+nimbus.image: "us-east-1/ami-08f40561"         #64-bit ubuntu
+nimbus.hardware: "m1.large"
+#nimbus.image: "us-east-1/ami-a6f504cf"  #32-bit ubuntu
+#nimbus.hardware: "c1.medium"
+
+supervisor.count: 3
+supervisor.image: "us-east-1/ami-08f40561"         #64-bit ubuntu
+supervisor.hardware: "c1.xlarge"
+#supervisor.spot.price: 1.60
+#supervisor.image: "us-east-1/ami-a6f504cf"  #32-bit ubuntu
+#supervisor.hardware: "c1.medium"
+
+
+zookeeper.count: 1
+zookeeper.image: "us-east-1/ami-08f40561"         #64-bit ubuntu
+zookeeper.hardware: "m1.large"
+#zookeeper.image: "us-east-1/ami-a6f504cf"  #32-bit ubuntu
+#zookeeper.hardware: "c1.medium"
+

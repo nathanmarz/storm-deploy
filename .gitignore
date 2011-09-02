@@ -1,0 +1,4 @@
+lib/
+logs/
+*.jar
+pom.xml
