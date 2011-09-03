@@ -57,12 +57,11 @@
 
     (var tmpdir (~directory/make-temp-dir "rf"))
     (cd (quoted @tmpdir))
-    (git clone "https://github.com/zeromq/jzmq.git")
+    ;; use frozen version of jzmq
+    (git clone "https://github.com/nathanmarz/jzmq.git")
 
     (cd "jzmq")
 
-    ;; freeze the version of jzmq used to avoid surprises. this is the latest jzmq as of june 15th
-    (git checkout "dd3327d62021077dec66cacc2b21b01c1d46b3cf")
     (export (str "JAVA_HOME="
                  @(dirname @(dirname @(update-alternatives "--list" javac)))))
 
