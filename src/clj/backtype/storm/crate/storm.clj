@@ -45,50 +45,76 @@
    (zeromq/install-jzmq :version "2.1.0")
    (package/package "daemontools")
    (package/package "unzip")
+   (package/package "zip")
    ))
 
-(defn make [request github-private-key]
+(defn download-release [request release]
+  (-> request
+    ;; TODO: fill in
+    ))
+
+(defn build-release-from-head [request]
+  (-> request
+    (exec-script/exec-checked-script
+      "Build storm"
+
+      (cd "$HOME")
+      (mkdir "build")
+      (cd "$HOME/build")
+      (if-not (directory? "storm")
+        (git clone "git@github.com:nathanmarz/storm"))
+
+      (cd storm)
+      (git pull)
+      (sh "bin/build_release.sh")
+      (cp "*.zip $HOME/")
+      )
+    ))
+
+(defn get-release [request release]
+  (if release
+    (download-release request release)
+    (build-release-from-head request)
+    ))
+
+(defn make [request release github-private-key]
   (->
    request
    (install-github-key "root" github-private-key)
+   (exec-script/exec-checked-script
+     "clean up home"
+     (cd "$HOME")
+     (rm "-f *.zip"))
+   (get-release release)
+   (exec-script/exec-checked-script
+     "prepare daemon"
+     (cd "$HOME")
+     (unzip "-o *.zip")
+     (rm "-f storm")
+     (ln "-s $HOME/`ls | grep zip | sed s/.zip//` storm")
 
-  (exec-script/exec-checked-script
-    "Build storm"
+     (mkdir "daemon"))
+    (directory/directory "$HOME/daemon/supervise" :owner "storm" :mode "700")
+    (directory/directory "$HOME/storm/logs" :owner "storm" :mode "700")
+    ))
 
-    (cd "$HOME")
-    (if-not (directory? "storm")
-      (git clone "git@github.com:nathanmarz/storm"))
-
-    (cd storm)
-    (git pull)
-    (export "LEIN_ROOT=1")
-    (lein deps)
-    (lein compile)
-    (lein jar)
-    (rm "-rf src/dev") ; get rid of dev resources not suitable for production 
-    )
-   (directory/directory "$HOME/storm/logs" :owner "storm" :mode "700")
-   (directory/directory "$HOME/storm/supervise" :owner "storm" :mode "700")
-   ))
-
-(defn install-supervisor [request local-dir-path github-private-key]
+(defn install-supervisor [request release local-dir-path github-private-key]
   (->
    request
    (install-dependencies)
    (directory/directory local-dir-path :owner "storm" :mode "700")
 
-   (make github-private-key)))
+   (make release github-private-key)))
 
 (defn write-ui-exec [request path]
   (-> request
       (remote-file/remote-file
        path
+       ;;TODO: need to replace $HOME with the hardcoded absolute path
        :content (str
                  "#!/bin/bash\n\n
-              export LD_LIBRARY_PATH=/usr/local/lib\n\n
               cd $HOME/storm\n\n
-              export LEIN_ROOT=1\n
-              lein ring server-headless 8080")
+              python bin/storm ui")
        :overwrite-changes true
        :literal true
        :mode 755)
@@ -100,40 +126,33 @@
     (directory/directory "$HOME/ui/logs" :owner "storm" :mode "700")
     (directory/directory "$HOME/ui/supervise" :owner "storm" :mode "700")
     (write-ui-exec "$HOME/ui/run")
-    (exec-script/exec-script
-      (cd "$HOME/storm")
-      ;; This is because compojure/jetty work differently in production mode than development mode... need to be in resources/ directory
-      (rm "-rf" "conf/public")
-      (cp "-R" "src/ui/public" "conf/"))
     ))
 
-(defn install-nimbus [request local-dir-path github-private-key]
+(defn install-nimbus [request release local-dir-path github-private-key]
   (->
    request
    (directory/directory local-dir-path :owner "storm" :mode "700")
    (install-dependencies)
-   (make github-private-key)))
+   (make release github-private-key)))
 
 (defn exec-daemon [request]
   (->
    request
    (exec-script/exec-script
-    (cd "$HOME/storm")
+    (cd "$HOME/daemon")
     "ps ax | grep backtype.storm | grep -v grep | awk '{print $1}' | xargs kill -9\n\n"
     "sudo -u storm -H nohup supervise . &"
     (cd "$HOME/ui")
     "sudo -u storm -H nohup supervise . &")))
 
-(defnk write-storm-exec [request name klass :java-opts "" :args ""]
+(defn write-storm-exec [request name]
   (-> request
     (remote-file/remote-file
-      "$HOME/storm/run"
+      "$HOME/daemon/run"
       :content (str
                 "#!/bin/bash\n\n
-                export LD_LIBRARY_PATH=/usr/local/lib\n\n
-                java -server " java-opts
-                " -Dlogfile.name=" name ".log"
-                " -cp `lein classpath`:log4j/:conf/ " klass " " args)
+                cd $HOME/storm\n\n
+                python bin/storm " name)
       :overwrite-changes true
       :literal true
       :mode 755)

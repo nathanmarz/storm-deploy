@@ -86,14 +86,13 @@
       :phases {:configure (phase
                            (ganglia/ganglia-node (nimbus-name name))
                            (storm/install-supervisor
+                            nil
                             "/mnt/storm"
                             (clusters-conf "github.privatekey")))
                :post-configure (phase
                                 (ganglia/ganglia-finish)
                                 (storm/write-storm-exec
-                                 "supervisor"
-                                 "backtype.storm.daemon.supervisor"
-                                 :java-opts (storm-conf "supervisor.childopts" "")))}))
+                                 "supervisor"))}))
 
 (defn nimbus-server-spec [name]
      (server-spec
@@ -101,15 +100,14 @@
       :phases {:configure (phase
                            (ganglia/ganglia-master (nimbus-name name))
                            (storm/install-nimbus
+                            nil
                             "/mnt/storm"
                             (clusters-conf "github.privatekey"))
                            (storm/install-ui))
                :post-configure (phase
                                 (ganglia/ganglia-finish)
                                 (storm/write-storm-exec
-                                 "nimbus"
-                                 "backtype.storm.daemon.nimbus"
-                                 :java-opts (storm-conf "nimbus.childopts" ""))
+                                 "nimbus")
                                  )}))
 
 (defn node-spec-from-config [group-name inbound-ports]
