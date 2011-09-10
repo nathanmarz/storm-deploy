@@ -50,15 +50,20 @@
          :content (str "StrictHostKeyChecking=" (yes-or-no host-key-checking))
          :mode 600))))
 
-(def base-server-spec
-     (server-spec
-      :phases {:bootstrap (fn [req] (automated-admin-user/automated-admin-user req "storm" "/Users/nathan/.ssh/storm.pub"))
-               :configure (phase
-                           (java/java :sun :jdk))}))
+(def *USER* nil)
 
-(def zookeeper-server-spec
+(defn base-server-spec []
+  (server-spec
+   :phases {:bootstrap (fn [req] (automated-admin-user/automated-admin-user
+                                  req
+                                  (:username *USER*)
+                                  (:public-key-path *USER*)))
+            :configure (phase
+                        (java/java :sun :jdk))}))
+
+(defn zookeeper-server-spec []
      (server-spec
-      :extends base-server-spec
+      :extends (base-server-spec)
       :phases {:configure (phase
                            (zookeeper/install :version "3.3.3")
                            (zookeeper/configure
@@ -69,7 +74,7 @@
 
 (defn storm-base-server-spec [name]
      (server-spec
-      :extends base-server-spec
+      :extends (base-server-spec)
       :phases {:post-configure (phase
                                 (storm/write-storm-yaml
                                  name
@@ -132,7 +137,7 @@
                                         [(storm-conf "storm.zookeeper.port")])
       :extends server-spec))
   ([name]
-    (zookeeper name zookeeper-server-spec)
+     (zookeeper name (zookeeper-server-spec))
     ))
 
 (defn nimbus

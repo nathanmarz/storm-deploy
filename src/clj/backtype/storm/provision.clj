@@ -5,9 +5,11 @@
         [pallet.configure]
         [backtype.storm security]
         [pallet.core]
-        [org.jclouds.compute :only [nodes-with-tag]])
+        [org.jclouds.compute :only [nodes-with-tag]]
+        [backtype.storm.util :only [with-var-roots]])
   (:require [backtype.storm.node :as node])
-  (:require [backtype.storm.crate.storm :as storm]))
+  (:require [backtype.storm.crate.storm :as storm])
+  (:require [backtype.storm.deploy-util :as util]))
 
 ;; memoize this
 (defn my-region []
@@ -82,7 +84,7 @@
     (print-all-ips! aws name)))
 
 (defn start! [aws name]
-  (start-with-nodes! aws name (node/nimbus-server-spec name) (node/supervisor-server-spec name) node/zookeeper-server-spec)
+  (start-with-nodes! aws name (node/nimbus-server-spec name) (node/supervisor-server-spec name) (node/zookeeper-server-spec))
   )
 
 
@@ -92,24 +94,32 @@
   (println "Shutdown Finished."))
 
 (defn mk-aws []
-  (compute-service-from-config-file "default"))
+  (let [storm-conf (-> (storm/storm-config "default")
+                       (update-in [:environment :user] util/resolve-keypaths))]
+    (compute-service-from-map storm-conf)))
 
 (defn -main [& args]
-  (let [aws (mk-aws)]
-    (with-command-line args
-      "Provisioning tool for Storm Clusters"
-      [[start? "Start Cluster?"]
-       [stop? "Shutdown Cluster?"]
-       [attach? "Attach to Cluster?"]
-       [ips? "Print Cluster IP Addresses?"]
-       [name "Cluster name" "dev"]]
+  (let [aws (mk-aws)
+        user (-> (storm/storm-config "default")
+                 :environment
+                 :user
+                 (util/resolve-keypaths))
+        ]
+    (with-var-roots [node/*USER* user]
+      (with-command-line args
+        "Provisioning tool for Storm Clusters"
+        [[start? "Start Cluster?"]
+         [stop? "Shutdown Cluster?"]
+         [attach? "Attach to Cluster?"]
+         [ips? "Print Cluster IP Addresses?"]
+         [name "Cluster name" "dev"]]
 
-      (cond 
-       stop? (stop! aws name)
-       start? (start! aws name)
-       attach? (attach! aws name)
-       ips? (print-all-ips! aws name)
-       :else (println "Must pass --start or --stop or --attach")))))
+        (cond 
+         stop? (stop! aws name)
+         start? (start! aws name)
+         attach? (attach! aws name)
+         ips? (print-all-ips! aws name)
+         :else (println "Must pass --start or --stop or --attach"))))))
 
 ;; DEBUGGING
 (comment

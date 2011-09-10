@@ -1,7 +1,8 @@
 (ns backtype.storm.crate.storm
   (:use [clojure.contrib.def :only [defnk]]
         [pallet.compute :only [running? primary-ip]]
-        [org.jclouds.compute :only [nodes-with-tag]])
+        [org.jclouds.compute :only [nodes-with-tag]]
+        [pallet.configure :only [compute-service-properties pallet-config]])
   (:require
    [backtype.storm.crate.zeromq :as zeromq]
    [backtype.storm.crate.leiningen :as leiningen]
@@ -12,6 +13,10 @@
    [pallet.resource.directory :as directory]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.exec-script :as exec-script]))
+
+(defn storm-config
+  ([] (storm-config "default"))
+  ([conf-name] (compute-service-properties (pallet-config) [conf-name])))
 
 (defn nimbus-ip [compute name]
   (let [running-nodes (filter running? (nodes-with-tag (str "nimbus-" name) compute))]
