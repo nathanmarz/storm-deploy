@@ -1,4 +1,4 @@
-(defproject storm-deploy "0.0.3-SNAPSHOT"
+(defproject storm-deploy "0.0.5-SNAPSHOT"
   :source-path "src/clj"
   :test-path "test/clj"
   :dev-resources-path "conf"
@@ -10,7 +10,7 @@
                  }
 
   :dependencies [
-                 [storm "0.0.1-SNAPSHOT"]
+                 [storm "0.0.2-SNAPSHOT"]
                  [commons-codec "1.4"]
                  [org.cloudhoist/pallet "0.6.1"]
                  [org.cloudhoist/java "0.5.0"]
