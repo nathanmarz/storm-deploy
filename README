@@ -1,29 +1,3 @@
-Setup
------
-1. run "lein deps"
+This project makes it dead-simple to deploy Storm clusters on AWS. See [the wiki](https://github.com/nathanmarz/storm-deploy/wiki) for instructions on using this deploy.
 
 
-Starting a cluster
-------------------
-
-Set number of supervisor nodes you want in conf/clusters.yaml. In conf/storm.yaml you can override/add configurations for storm. Then run:
-
-lein run :deploy --start --name mystormcluster
-
-You can have multiple storm clusters under different "--name". If you leave out the --name parameter, the name defaults to "dev"
-
-
-Stopping a cluster
--------------------
-
-lein run :deploy --stop --name mystormcluster
-
-
-
-
-TODO
-
------
-
-1. pallet needs to allow ~/ paths in the paths in config.clj
-2. pallet automated-admin-user needs to remove the need for specifying the public key path
