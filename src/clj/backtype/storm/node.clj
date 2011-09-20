@@ -92,8 +92,7 @@
                            (ganglia/ganglia-node (nimbus-name name))
                            (storm/install-supervisor
                             nil
-                            "/mnt/storm"
-                            (clusters-conf "github.privatekey")))
+                            "/mnt/storm"))
                :post-configure (phase
                                 (ganglia/ganglia-finish)
                                 (storm/write-storm-exec
@@ -106,8 +105,7 @@
                            (ganglia/ganglia-master (nimbus-name name))
                            (storm/install-nimbus
                             nil
-                            "/mnt/storm"
-                            (clusters-conf "github.privatekey"))
+                            "/mnt/storm")
                            (storm/install-ui))
                :post-configure (phase
                                 (ganglia/ganglia-finish)

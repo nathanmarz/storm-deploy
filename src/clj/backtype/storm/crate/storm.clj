@@ -33,13 +33,6 @@
                               (nodes-with-tag (str "supervisor-" name) compute))]
     (map primary-ip running-nodes)))
 
-(defn- install-github-key [request user private-key]
-  (-> request
-      (ssh-key/install-key
-       user "id_rsa"
-       (slurp private-key)
-       "!superfluous!")))
-
 (defn- install-dependencies [request]
   (->
    request
@@ -82,10 +75,9 @@
     (build-release-from-head request)
     ))
 
-(defn make [request release github-private-key]
+(defn make [request release]
   (->
    request
-   (install-github-key "root" github-private-key)
    (exec-script/exec-checked-script
      "clean up home"
      (cd "$HOME")
@@ -103,13 +95,13 @@
     (directory/directory "$HOME/storm/logs" :owner "storm" :mode "700")
     ))
 
-(defn install-supervisor [request release local-dir-path github-private-key]
+(defn install-supervisor [request release local-dir-path]
   (->
    request
    (install-dependencies)
    (directory/directory local-dir-path :owner "storm" :mode "700")
 
-   (make release github-private-key)))
+   (make release)))
 
 (defn write-ui-exec [request path]
   (-> request
@@ -133,12 +125,12 @@
     (write-ui-exec "$HOME/ui/run")
     ))
 
-(defn install-nimbus [request release local-dir-path github-private-key]
+(defn install-nimbus [request release local-dir-path]
   (->
    request
    (directory/directory local-dir-path :owner "storm" :mode "700")
    (install-dependencies)
-   (make release github-private-key)))
+   (make release)))
 
 (defn exec-daemon [request]
   (->

@@ -2,8 +2,6 @@
 # CLUSTERS CONFIG FILE
 ################################################################################
 
-github.privatekey: "/Users/nathan/.ssh/storm"
-
 nimbus.image: "us-east-1/ami-08f40561"         #64-bit ubuntu
 nimbus.hardware: "m1.large"
 
