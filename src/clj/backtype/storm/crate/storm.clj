@@ -60,7 +60,7 @@
       (mkdir "build")
       (cd "$HOME/build")
       (if-not (directory? "storm")
-        (git clone "git@github.com:nathanmarz/storm"))
+        (git clone "git://github.com/nathanmarz/storm.git"))
 
       (cd storm)
       (git pull)
