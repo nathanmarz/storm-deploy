@@ -10,7 +10,7 @@
                  }
 
   :dependencies [
-                 [storm "0.5.0"]
+                 [storm "0.5.2"]
                  [commons-codec "1.4"]
                  [org.cloudhoist/pallet "0.6.1"]
                  [org.cloudhoist/java "0.5.0"]
