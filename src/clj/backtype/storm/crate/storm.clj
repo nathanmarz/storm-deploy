@@ -98,7 +98,10 @@
 
      (mkdir "daemon")
      (chmod "755" "$HOME/storm/log4j")
+     (touch "$HOME/storm/log4j/storm.log.properties")
+     (touch "$HOME/storm/log4j/log4j.properties")
      (chmod "755" "$HOME/storm/log4j/storm.log.properties")
+     (chmod "755" "$HOME/storm/log4j/log4j.properties")
      )
     (directory/directory "$HOME/daemon/supervise" :owner "storm" :mode "700")
     (directory/directory "$HOME/storm/logs" :owner "storm" :mode "700")
