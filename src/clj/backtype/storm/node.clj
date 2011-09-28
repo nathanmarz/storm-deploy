@@ -85,26 +85,26 @@
                       (storm/exec-daemon)
                       (ganglia/ganglia-finish))}))
 
-(defn supervisor-server-spec [name]
+(defn supervisor-server-spec [name release]
      (server-spec
       :extends (storm-base-server-spec name)
       :phases {:configure (phase
                            (ganglia/ganglia-node (nimbus-name name))
                            (storm/install-supervisor
-                            nil
+                            release
                             "/mnt/storm"))
                :post-configure (phase
                                 (ganglia/ganglia-finish)
                                 (storm/write-storm-exec
                                  "supervisor"))}))
 
-(defn nimbus-server-spec [name]
+(defn nimbus-server-spec [name release]
      (server-spec
       :extends (storm-base-server-spec name)
       :phases {:configure (phase
                            (ganglia/ganglia-master (nimbus-name name))
                            (storm/install-nimbus
-                            nil
+                            release
                             "/mnt/storm")
                            (storm/install-ui))
                :post-configure (phase
@@ -138,26 +138,24 @@
      (zookeeper name (zookeeper-server-spec))
     ))
 
-(defn nimbus
-  ([name server-spec]
-     (group-spec
-      (nimbus-name name)
-      :node-spec (node-spec-from-config "nimbus"
-                                        [(storm-conf "nimbus.thrift.port")])
-      :extends server-spec))
-  ([name]
-    (nimbus name (nimbus-server-spec name))
-    ))
+(defn nimbus* [name server-spec]
+  (group-spec
+    (nimbus-name name)
+    :node-spec (node-spec-from-config "nimbus"
+                                      [(storm-conf "nimbus.thrift.port")])
+    :extends server-spec))
 
-(defn supervisor
-  ([name server-spec]
-     (group-spec
-      (str "supervisor-" name)
-      :node-spec (node-spec-from-config "supervisor"
-                                        (storm-conf "supervisor.slots.ports"))
-      :extends server-spec))
- ([name]
-   (supervisor name (supervisor-server-spec name))
-   ))
+(defn nimbus [name release]
+  (nimbus* name (nimbus-server-spec name release)))
+
+(defn supervisor* [name server-spec]
+  (group-spec
+    (str "supervisor-" name)
+    :node-spec (node-spec-from-config "supervisor"
+                                    (storm-conf "supervisor.slots.ports"))
+    :extends server-spec))
+
+(defn supervisor [name release]
+  (supervisor* name (supervisor-server-spec name release)))
 
 

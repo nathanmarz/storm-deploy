@@ -46,9 +46,15 @@
    (package/package "zip")
    ))
 
+(defn storm-release-url [release]
+  (format "https://github.com/downloads/nathanmarz/storm/storm-%s.zip" release))
+
 (defn download-release [request release]
   (-> request
-    ;; TODO: fill in
+    (remote-file/remote-file
+       (format "$HOME/storm-%s.zip" release)
+       :url (storm-release-url release)
+       :no-versioning true)
     ))
 
 (defn build-release-from-head [request]
@@ -90,9 +96,13 @@
      (rm "-f storm")
      (ln "-s $HOME/`ls | grep zip | sed s/.zip//` storm")
 
-     (mkdir "daemon"))
+     (mkdir "daemon")
+     (chmod "755" "$HOME/storm/log4j")
+     (chmod "755" "$HOME/storm/log4j/storm.log.properties")
+     )
     (directory/directory "$HOME/daemon/supervise" :owner "storm" :mode "700")
     (directory/directory "$HOME/storm/logs" :owner "storm" :mode "700")
+    (directory/directory "$HOME/storm/bin" :mode "755")
     ))
 
 (defn install-supervisor [request release local-dir-path]

@@ -34,9 +34,9 @@
        (doseq [tag all-tags]
          (print-ips-for-tag! aws tag))))
 
-(defn converge! [name aws sn zn nn]
-  (converge {(node/nimbus name) nn
-             (node/supervisor name) sn
+(defn converge! [name release aws sn zn nn]
+  (converge {(node/nimbus name release) nn
+             (node/supervisor name release) sn
              (node/zookeeper name) zn
              }
             :compute aws))
@@ -62,12 +62,12 @@
   (println "Attaching Complete."))
 
 (defn start-with-nodes! [aws name nimbus supervisor zookeeper]
-  (let [nimbus (node/nimbus name nimbus)
-        supervisor (node/supervisor name supervisor)
+  (let [nimbus (node/nimbus* name nimbus)
+        supervisor (node/supervisor* name supervisor)
         zookeeper (node/zookeeper name zookeeper)
         sn (int (node/clusters-conf "supervisor.count" 1))
         zn (int (node/clusters-conf "zookeeper.count" 1))]
-    (println (format "Provisioning nodes [nn=1, sn=%d, zn=%d]..." sn zn))
+    (println (format "Provisioning nodes [nn=1, sn=%d, zn=%d]" sn zn))
     (converge {nimbus 1
               supervisor sn
               zookeeper zn
@@ -83,14 +83,15 @@
     (println "Provisioning Complete.")
     (print-all-ips! aws name)))
 
-(defn start! [aws name]
-  (start-with-nodes! aws name (node/nimbus-server-spec name) (node/supervisor-server-spec name) (node/zookeeper-server-spec))
+(defn start! [aws name release]
+  (println "Starting cluster with release" release)
+  (start-with-nodes! aws name (node/nimbus-server-spec name release) (node/supervisor-server-spec name release) (node/zookeeper-server-spec))
   )
 
 
 (defn stop! [aws name]
   (println "Shutting Down nodes...")
-  (converge! name aws 0 0 0)
+  (converge! name nil aws 0 0 0)
   (println "Shutdown Finished."))
 
 (defn mk-aws []
@@ -112,11 +113,12 @@
          [stop? "Shutdown Cluster?"]
          [attach? "Attach to Cluster?"]
          [ips? "Print Cluster IP Addresses?"]
-         [name "Cluster name" "dev"]]
+         [name "Cluster name" "dev"]
+         [release "Release version" nil]]
 
         (cond 
          stop? (stop! aws name)
-         start? (start! aws name)
+         start? (start! aws name release)
          attach? (attach! aws name)
          ips? (print-all-ips! aws name)
          :else (println "Must pass --start or --stop or --attach"))))))

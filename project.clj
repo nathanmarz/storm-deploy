@@ -1,4 +1,4 @@
-(defproject storm-deploy "0.0.5-SNAPSHOT"
+(defproject storm-deploy "0.0.6-SNAPSHOT"
   :source-path "src/clj"
   :test-path "test/clj"
   :dev-resources-path "conf"
