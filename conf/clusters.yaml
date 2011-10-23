@@ -6,7 +6,7 @@ nimbus.image: "us-east-1/ami-08f40561"         #64-bit ubuntu
 nimbus.hardware: "m1.large"
 
 supervisor.count: 3
-supervisor.image: "us-east-1/ami-08f40561"         #64-bit ubuntu
+supervisor.image: "us-east-1/ami-08f40561"         #64-bit ubuntu on us-east
 supervisor.hardware: "c1.xlarge"
 #supervisor.spot.price: 1.60
 
@@ -15,3 +15,11 @@ zookeeper.count: 1
 zookeeper.image: "us-east-1/ami-08f40561"         #64-bit ubuntu
 zookeeper.hardware: "m1.large"
 
+
+
+################################################################################
+# Other Options:
+#
+# Need to use us-west-1? 
+#       Change all the image id's to "us-west-1/ami-a17e2ee4"
+#       See alestic.com for other AMI options.
