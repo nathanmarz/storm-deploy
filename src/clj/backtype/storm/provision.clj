@@ -54,11 +54,8 @@
   (sync-storm-conf-dir aws name)
   (authorizeme aws (jclouds-group "nimbus-" name) 80)
   (authorizeme aws (jclouds-group "nimbus-" name) (node/storm-conf "nimbus.thrift.port"))
-  (authorizeme aws (jclouds-group "nimbus-" name) 8080)
-
-
-  ;; TODO: should probably move this out of this deploy
-  (authorizeme aws (jclouds-group "nimbus-" name) 3772)  ;; drpc 
+  (authorizeme aws (jclouds-group "nimbus-" name) (node/storm-conf "ui.port"))
+  (authorizeme aws (jclouds-group "nimbus-" name) (node/storm-conf "drpc.port"))
   (println "Attaching Complete."))
 
 (defn start-with-nodes! [aws name nimbus supervisor zookeeper]
@@ -128,7 +125,7 @@
 (use 'backtype.storm.provision)
 (ns backtype.storm.provision)
 (def aws (mk-aws))
-(lift (node/zookeeper "test") :compute aws :phase [:configure] )
+(lift (node/supervisor "test" nil) :compute aws :phase [:post-configure] )
 (sync-storm-conf-dir aws)
 (print-all-ips! aws)
 )

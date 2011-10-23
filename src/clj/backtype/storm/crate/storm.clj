@@ -1,6 +1,6 @@
 (ns backtype.storm.crate.storm
   (:use [clojure.contrib.def :only [defnk]]
-        [pallet.compute :only [running? primary-ip]]
+        [pallet.compute :only [running? primary-ip private-ip]]
         [org.jclouds.compute :only [nodes-with-tag]]
         [pallet.configure :only [compute-service-properties pallet-config]])
   (:require
@@ -22,6 +22,12 @@
   (let [running-nodes (filter running? (nodes-with-tag (str "nimbus-" name) compute))]
     (assert (= (count running-nodes) 1))
     (primary-ip (first running-nodes))))
+
+(defn nimbus-private-ip [compute name]
+  (let [running-nodes (filter running? (nodes-with-tag (str "nimbus-" name) compute))]
+    (assert (= (count running-nodes) 1))
+    (private-ip (first running-nodes))))
+
 
 (defn zookeeper-ips [compute name]
   (let [running-nodes (filter running?
@@ -63,7 +69,7 @@
       "Build storm"
 
       (cd "$HOME")
-      (mkdir "build")
+      (mkdir -p "build")
       (cd "$HOME/build")
       (if-not (directory? "storm")
         (git clone "git://github.com/nathanmarz/storm.git"))
@@ -96,7 +102,7 @@
      (rm "-f storm")
      (ln "-s $HOME/`ls | grep zip | sed s/.zip//` storm")
 
-     (mkdir "daemon")
+     (mkdir -p "daemon")
      (chmod "755" "$HOME/storm/log4j")
      (touch "$HOME/storm/log4j/storm.log.properties")
      (touch "$HOME/storm/log4j/log4j.properties")
@@ -130,12 +136,34 @@
        :mode 755)
       ))
 
+(defn write-drpc-exec [request path]
+  (-> request
+      (remote-file/remote-file
+       path
+       ;;TODO: need to replace $HOME with the hardcoded absolute path
+       :content (str
+                 "#!/bin/bash\n\n
+              cd $HOME/storm\n\n
+              python bin/storm drpc")
+       :overwrite-changes true
+       :literal true
+       :mode 755)
+      ))
+
 (defn install-ui [request]
   (-> request
     (directory/directory "$HOME/ui" :owner "storm" :mode "700")
     (directory/directory "$HOME/ui/logs" :owner "storm" :mode "700")
     (directory/directory "$HOME/ui/supervise" :owner "storm" :mode "700")
     (write-ui-exec "$HOME/ui/run")
+    ))
+
+(defn install-drpc [request]
+  (-> request
+    (directory/directory "$HOME/drpc" :owner "storm" :mode "700")
+    (directory/directory "$HOME/drpc/logs" :owner "storm" :mode "700")
+    (directory/directory "$HOME/drpc/supervise" :owner "storm" :mode "700")
+    (write-drpc-exec "$HOME/drpc/run")
     ))
 
 (defn install-nimbus [request release local-dir-path]
@@ -152,8 +180,19 @@
     (cd "$HOME/daemon")
     "ps ax | grep backtype.storm | grep -v grep | awk '{print $1}' | xargs kill -9\n\n"
     "sudo -u storm -H nohup supervise . &"
+    )))
+
+(defn exec-ui [request]
+  (exec-script/exec-script request
     (cd "$HOME/ui")
-    "sudo -u storm -H nohup supervise . &")))
+    "sudo -u storm -H nohup supervise . &"
+    ))
+
+(defn exec-drpc [request]
+  (exec-script/exec-script request
+    (cd "$HOME/drpc")
+    "sudo -u storm -H nohup supervise . &"
+    ))
 
 (defn write-storm-exec [request name]
   (-> request
@@ -178,6 +217,8 @@
        (concat (map #(str "  - \"" % "\"") (zookeeper-ips compute name)))
        []
        [(str "nimbus.host: \"" (nimbus-ip compute name) "\"")]
+       ["drpc.servers:"]
+       [(str "  - \"" (nimbus-private-ip compute name) "\"")]
        [(str "storm.local.dir: \"/mnt/storm\"")]))))
 
 (defn mk-supervisor-yaml [compute name]

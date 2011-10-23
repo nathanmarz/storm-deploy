@@ -28,6 +28,18 @@
    [org.jclouds.compute :only [nodes-with-tag]]
    [clojure.walk]))
 
+(defn parse-release [release]
+  (map #(Integer/parseInt %) (.split release "\\.")))
+
+(defn release> [release1 release2]
+  (let [r1 (parse-release release1)
+        r2 (parse-release release2)
+        diff (map - r1 r2)
+        left (take-while #(>= % 0) diff)]
+    (and (not (empty? left))
+         (pos? (last left)))
+    ))
+
 ;; CONSTANTS
 
 (def clusters-conf
@@ -98,6 +110,18 @@
                                 (storm/write-storm-exec
                                  "supervisor"))}))
 
+(defn maybe-install-drpc [req release]
+  (if (or (not release) (release> release "0.5.3"))
+    (storm/install-drpc req)
+    req
+    ))
+
+(defn maybe-exec-drpc [req release]
+  (if (or (not release) (release> release "0.5.3"))
+    (storm/exec-drpc req)
+    req
+    ))
+
 (defn nimbus-server-spec [name release]
      (server-spec
       :extends (storm-base-server-spec name)
@@ -106,12 +130,16 @@
                            (storm/install-nimbus
                             release
                             "/mnt/storm")
-                           (storm/install-ui))
+                           (storm/install-ui)
+                           (maybe-install-drpc release))
                :post-configure (phase
                                 (ganglia/ganglia-finish)
                                 (storm/write-storm-exec
                                  "nimbus")
-                                 )}))
+                                 )
+               :exec (phase
+                        (storm/exec-ui)
+                        (maybe-exec-drpc release))}))
 
 (defn node-spec-from-config [group-name inbound-ports]
   (letfn [(assoc-with-conf-key [image image-key conf-key & {:keys [f] :or {f identity}}]
