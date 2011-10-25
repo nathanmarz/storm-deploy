@@ -184,14 +184,12 @@
 
 (defn exec-ui [request]
   (exec-script/exec-script request
-    (cd "$HOME/ui")
-    "sudo -u storm -H nohup supervise . &"
+    "sudo -u storm -H nohup supervise ~storm/ui > nohup-ui.log &"
     ))
 
 (defn exec-drpc [request]
   (exec-script/exec-script request
-    (cd "$HOME/drpc")
-    "sudo -u storm -H nohup supervise . &"
+    "sudo -u storm -H nohup supervise ~storm/drpc > nohup-drpc.log &"
     ))
 
 (defn write-storm-exec [request name]
