@@ -36,8 +36,8 @@
         r2 (parse-release release2)
         diff (map - r1 r2)
         left (take-while #(>= % 0) diff)]
-    (and (not (empty? left))
-         (pos? (last left)))
+    (and (some pos? left)
+         (not (empty? left)))
     ))
 
 ;; CONSTANTS
