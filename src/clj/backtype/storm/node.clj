@@ -32,13 +32,9 @@
   (map #(Integer/parseInt %) (.split release "\\.")))
 
 (defn release> [release1 release2]
-  (let [r1 (parse-release release1)
-        r2 (parse-release release2)
-        diff (map - r1 r2)
-        left (take-while #(>= % 0) diff)]
-    (and (some pos? left)
-         (not (empty? left)))
-    ))
+  (->> (map - (parse-release release1) (parse-release release2))
+       (take-while #(>= % 0))
+       (some pos?)))
 
 ;; CONSTANTS
 
