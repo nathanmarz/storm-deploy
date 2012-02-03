@@ -5,7 +5,7 @@
 nimbus.image: "us-east-1/ami-08f40561"         #64-bit ubuntu
 nimbus.hardware: "m1.large"
 
-supervisor.count: 3
+supervisor.count: 2
 supervisor.image: "us-east-1/ami-08f40561"         #64-bit ubuntu on us-east
 supervisor.hardware: "c1.xlarge"
 #supervisor.spot.price: 1.60
