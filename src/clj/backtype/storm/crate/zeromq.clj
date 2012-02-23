@@ -63,7 +63,7 @@
     (cd "jzmq")
 
     (export (str "JAVA_HOME="
-                 @(dirname @(dirname @(update-alternatives "--list" javac)))))
+                 @(dirname @(dirname @(dirname @(update-alternatives "--list" java))))))
 
     ("./autogen.sh")
     ("./configure")

@@ -67,7 +67,7 @@
                                   (:username *USER*)
                                   (:public-key-path *USER*)))
             :configure (phase
-                        (java/java :sun :jdk))}))
+                        (java/java :openjdk))}))
 
 (defn zookeeper-server-spec []
      (server-spec

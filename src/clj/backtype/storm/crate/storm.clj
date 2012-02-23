@@ -42,7 +42,7 @@
 (defn- install-dependencies [request]
   (->
    request
-   (java/java :sun :jdk)
+   (java/java :openjdk)
    (git/git)
    (leiningen/install)
    (zeromq/install :version "2.1.4")
