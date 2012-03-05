@@ -88,7 +88,7 @@
       (.authorizeSecurityGroupIngressInRegion
        (sg-service compute) (ebs/get-region region) (.getName group) (get-protocol protocol) from-port to-port (or ip-range "0.0.0.0/0"))
       (throw (IllegalArgumentException.
-              (str "Can't find security group for name " group-name))))))
+              (str "Can't find security group for name " group-name region ip-range from-port to-port))))))
 
 (def my-ip
   (memoize
@@ -99,9 +99,9 @@
         ret
         ))))
 
-(defn authorizeme [compute group-name port]
+(defn authorizeme [compute group-name port region]
   (try
-    (authorize compute group-name port :ip-range (str (my-ip) "/32")
+    (authorize compute group-name port :ip-range (str (my-ip) "/32") :region region
     )
   (catch IllegalStateException _)
   ))

@@ -1,11 +1,11 @@
 (ns backtype.storm.provision
   (:import [java.io File])
   (:use [clojure.contrib.command-line]
-        [pallet.compute]
-        [pallet.configure]
+        [pallet.compute :exclude [running?]]
+        [pallet.configure :only [pallet-config]]
         [backtype.storm security]
         [pallet.core]
-        [org.jclouds.compute :only [nodes-with-tag]]
+        [org.jclouds.compute :only [running? public-ips private-ips nodes-with-tag]]
         [backtype.storm.util :only [with-var-roots]])
   (:require [backtype.storm.node :as node])
   (:require [backtype.storm.crate.storm :as storm])
@@ -26,8 +26,8 @@
 (defn- print-ips-for-tag! [aws tag-str]
   (let [running-node (filter running? (nodes-with-tag tag-str aws))]
     (println "TAG:     " tag-str)
-    (println "PUBLIC:  " (map primary-ip running-node))
-    (println "PRIVATE: " (map private-ip running-node))))
+    (println "PUBLIC:  " (map public-ips running-node))
+    (println "PRIVATE: " (map private-ips running-node))))
 
 (defn print-all-ips! [aws name]
   (let [all-tags [(str "zookeeper-" name) (str "nimbus-" name) (str "supervisor-" name)]]
@@ -52,10 +52,10 @@
 (defn attach! [aws name]
   (println "Attaching to Available Cluster...")
   (sync-storm-conf-dir aws name)
-  (authorizeme aws (jclouds-group "nimbus-" name) 80)
-  (authorizeme aws (jclouds-group "nimbus-" name) (node/storm-conf "nimbus.thrift.port"))
-  (authorizeme aws (jclouds-group "nimbus-" name) (node/storm-conf "ui.port"))
-  (authorizeme aws (jclouds-group "nimbus-" name) (node/storm-conf "drpc.port"))
+  (authorizeme aws (jclouds-group "nimbus-" name) 80 (my-region))
+  (authorizeme aws (jclouds-group "nimbus-" name) (node/storm-conf "nimbus.thrift.port") (my-region))
+  (authorizeme aws (jclouds-group "nimbus-" name) (node/storm-conf "ui.port") (my-region))
+  (authorizeme aws (jclouds-group "nimbus-" name) (node/storm-conf "drpc.port") (my-region))
   (println "Attaching Complete."))
 
 (defn start-with-nodes! [aws name nimbus supervisor zookeeper]
