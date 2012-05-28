@@ -17,7 +17,7 @@
   "The url for downloading zeromq"
   [version]
   (format
-   "http://download.zeromq.org/historic/zeromq-%s.tar.gz"
+   "http://download.zeromq.org/zeromq-%s.tar.gz"
    version))
 
 (defn install
