@@ -85,6 +85,23 @@
   (start-with-nodes! aws name (node/nimbus-server-spec name release) (node/supervisor-server-spec name release) (node/zookeeper-server-spec))
   )
 
+(defn upgrade-with-nodes! [aws name nimbus supervisor zookeeper]
+  (let [nimbus (node/nimbus* name nimbus)
+        supervisor (node/supervisor* name supervisor)
+        zookeeper (node/zookeeper name zookeeper)]
+;    (authorize-group aws (my-region) (jclouds-group "nimbus-" name) (jclouds-group "supervisor-" name))
+;    (authorize-group aws (my-region) (jclouds-group "supervisor-" name) (jclouds-group "nimbus-" name))
+
+;    (lift zookeeper :compute aws :phase [:configure])
+;    (lift nimbus :compute aws :phase [:configure :post-configure :exec])
+    (lift supervisor :compute aws :phase [:configure :post-configure :exec])
+    (println "Upgrade Complete.")))
+
+
+(defn upgrade! [aws name release]
+  (println "Upgrading cluster with release" release)
+  (upgrade-with-nodes! aws name (node/nimbus-server-spec name release) (node/supervisor-server-spec name release) (node/zookeeper-server-spec))
+  )
 
 (defn stop! [aws name]
   (println "Shutting Down nodes...")
@@ -109,6 +126,7 @@
         [[start? "Start Cluster?"]
          [stop? "Shutdown Cluster?"]
          [attach? "Attach to Cluster?"]
+         [upgrade? "Upgrade existing cluster"]
          [ips? "Print Cluster IP Addresses?"]
          [name "Cluster name" "dev"]
          [release "Release version" nil]]
@@ -116,6 +134,7 @@
         (cond 
          stop? (stop! aws name)
          start? (start! aws name release)
+         upgrade? (upgrade! aws name release)
          attach? (attach! aws name)
          ips? (print-all-ips! aws name)
          :else (println "Must pass --start or --stop or --attach"))))))
