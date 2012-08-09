@@ -93,7 +93,7 @@
 (def my-ip
   (memoize
     (fn []
-      (let [is (DataInputStream. (.openStream (URL. "http://demontunes.com/api/?g=ip")))
+      (let [is (DataInputStream. (.openStream (URL. "http://whatismyip.akamai.com/")))
             ret (.readLine is)]
         (.close is)
         ret
