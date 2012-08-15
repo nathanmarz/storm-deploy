@@ -73,7 +73,7 @@
      (server-spec
       :extends (base-server-spec)
       :phases {:configure (phase
-                           (zookeeper/install :version "3.3.3")
+                           (zookeeper/install :version "3.3.5")
                            (zookeeper/configure
                             :clientPort (storm-conf "storm.zookeeper.port")
                             :maxClientCnxns 0)
