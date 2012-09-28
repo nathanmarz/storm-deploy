@@ -22,7 +22,7 @@
      :doc "A clojure binding for the jclouds AWS security group interface."}
   backtype.storm.security
   (:require (org.jclouds [compute2 :as compute])
-    [org.jclouds.ec2.ebs :as ebs])
+    [org.jclouds.ec2.ebs2 :as ebs])
   (:import org.jclouds.ec2.domain.IpProtocol
            org.jclouds.ec2.domain.SecurityGroup
            org.jclouds.ec2.services.SecurityGroupClient

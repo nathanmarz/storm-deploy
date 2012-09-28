@@ -1,7 +1,9 @@
 (ns backtype.storm.crate.storm
   (:use [clojure.contrib.def :only [defnk]]
-;;;        [pallet.compute :only [primary-ip private-ip]]
-        [org.jclouds.compute :only [running? public-ips private-ips nodes-with-tag]]
+        [pallet.compute :only [running? primary-ip private-ip]]
+        [pallet.compute.jclouds]
+        [org.jclouds.compute2 :only [nodes-in-group]]
+
         [pallet.configure :only [compute-service-properties pallet-config]])
   (:require
    [backtype.storm.crate.zeromq :as zeromq]
@@ -12,32 +14,32 @@
    [pallet.resource.package :as package]
    [pallet.resource.directory :as directory]
    [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.exec-script :as exec-script]))
+   [pallet.action.exec-script :as exec-script]))
 
 (defn storm-config
   ([] (storm-config "default"))
   ([conf-name] (compute-service-properties (pallet-config) [conf-name])))
 
 (defn nimbus-ip [compute name]
-  (let [running-nodes (filter running? (nodes-with-tag (str "nimbus-" name) compute))]
+  (let [running-nodes (filter running? (map (partial jclouds-node->node compute) (nodes-in-group compute (str "nimbus-" name))))]
     (assert (= (count running-nodes) 1))
-    (first (public-ips (first running-nodes)))))
+    (primary-ip (first running-nodes))))
 
 (defn nimbus-private-ip [compute name]
-  (let [running-nodes (filter running? (nodes-with-tag (str "nimbus-" name) compute))]
+  (let [running-nodes (filter running? (map (partial jclouds-node->node compute) (nodes-in-group compute (str "nimbus-" name))))]
     (assert (= (count running-nodes) 1))
-    (first (private-ips (first running-nodes)))))
+    (private-ip (first running-nodes))))
 
 
 (defn zookeeper-ips [compute name]
   (let [running-nodes (filter running?
-                              (nodes-with-tag (str "zookeeper-" name) compute))]
-    (map public-ips running-nodes)))
+    (map (partial jclouds-node->node compute) (nodes-in-group compute (str "zookeeper-" name))))]
+    (map primary-ip running-nodes)))
 
 (defn supervisor-ips [compute name]
   (let [running-nodes (filter running?
-                              (nodes-with-tag (str "supervisor-" name) compute))]
-    (map public-ips running-nodes)))
+    (map (partial jclouds-node->node compute) (nodes-in-group compute (str "supervisor-" name))))]
+    (map primary-ip running-nodes)))
 
 (defn- install-dependencies [request]
   (->
@@ -212,7 +214,7 @@
       "\n"
       (newline-join
        ["storm.zookeeper.servers:"]
-       (concat (map #(str "  - \"" % "\"")  (map (fn [s] (clojure.string/replace s #"[\[\]]" "")) (zookeeper-ips compute name))))
+       (concat (map #(str "  - \"" % "\"") (zookeeper-ips compute name)))
        []
        [(str "nimbus.host: \"" (nimbus-ip compute name) "\"")]
        ["drpc.servers:"]
@@ -224,7 +226,7 @@
     (str
       (newline-join
        ["storm.supervisor.servers:"]
-       (concat (map #(str "  - \"" % "\"")  (map (fn [s] (clojure.string/replace s #"[\[\]]" "")) (supervisor-ips compute name))))
+       (concat (map #(str "  - \"" % "\"") (supervisor-ips compute name)))
        []))))
 
 (defn write-storm-yaml [request name local-storm-file]

@@ -1,6 +1,6 @@
 (ns backtype.storm.crate.zeromq
   (:require
-   [pallet.resource.exec-script :as exec-script]
+   [pallet.action.exec-script :as exec-script]
    [pallet.resource.package :as package]
    [pallet.resource.remote-directory :as remote-directory]
    [pallet.resource.directory :as directory]
