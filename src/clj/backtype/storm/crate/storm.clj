@@ -1,7 +1,7 @@
 (ns backtype.storm.crate.storm
   (:use [clojure.contrib.def :only [defnk]]
-        [pallet.compute :only [running? primary-ip private-ip]]
-        [org.jclouds.compute :only [nodes-with-tag]]
+;;;        [pallet.compute :only [primary-ip private-ip]]
+        [org.jclouds.compute :only [running? public-ips private-ips nodes-with-tag]]
         [pallet.configure :only [compute-service-properties pallet-config]])
   (:require
    [backtype.storm.crate.zeromq :as zeromq]
@@ -21,23 +21,23 @@
 (defn nimbus-ip [compute name]
   (let [running-nodes (filter running? (nodes-with-tag (str "nimbus-" name) compute))]
     (assert (= (count running-nodes) 1))
-    (primary-ip (first running-nodes))))
+    (first (public-ips (first running-nodes)))))
 
 (defn nimbus-private-ip [compute name]
   (let [running-nodes (filter running? (nodes-with-tag (str "nimbus-" name) compute))]
     (assert (= (count running-nodes) 1))
-    (private-ip (first running-nodes))))
+    (first (private-ips (first running-nodes)))))
 
 
 (defn zookeeper-ips [compute name]
   (let [running-nodes (filter running?
                               (nodes-with-tag (str "zookeeper-" name) compute))]
-    (map primary-ip running-nodes)))
+    (map public-ips running-nodes)))
 
 (defn supervisor-ips [compute name]
   (let [running-nodes (filter running?
                               (nodes-with-tag (str "supervisor-" name) compute))]
-    (map primary-ip running-nodes)))
+    (map public-ips running-nodes)))
 
 (defn- install-dependencies [request]
   (->
@@ -212,7 +212,7 @@
       "\n"
       (newline-join
        ["storm.zookeeper.servers:"]
-       (concat (map #(str "  - \"" % "\"") (zookeeper-ips compute name)))
+       (concat (map #(str "  - \"" % "\"")  (map (fn [s] (clojure.string/replace s #"[\[\]]" "")) (zookeeper-ips compute name))))
        []
        [(str "nimbus.host: \"" (nimbus-ip compute name) "\"")]
        ["drpc.servers:"]
@@ -224,7 +224,7 @@
     (str
       (newline-join
        ["storm.supervisor.servers:"]
-       (concat (map #(str "  - \"" % "\"") (supervisor-ips compute name)))
+       (concat (map #(str "  - \"" % "\"")  (map (fn [s] (clojure.string/replace s #"[\[\]]" "")) (supervisor-ips compute name))))
        []))))
 
 (defn write-storm-yaml [request name local-storm-file]
