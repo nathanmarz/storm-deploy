@@ -130,6 +130,7 @@
                  :user
                  (util/resolve-keypaths))
         ]
+    (System/setProperty "jna.nosys" "true")
     (with-var-roots [node/*USER* user]
       (with-command-line args
         "Provisioning tool for Storm Clusters"

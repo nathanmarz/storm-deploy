@@ -24,6 +24,13 @@
                  [org.cloudhoist/nagios-config "0.5.0"]
                  [org.cloudhoist/crontab "0.5.0"]
 
+                 [com.jcraft/jsch.agentproxy.usocket-jna "0.0.5"]
+                 [com.jcraft/jsch.agentproxy.usocket-nc "0.0.5"]
+                 [com.jcraft/jsch.agentproxy.sshagent "0.0.5"]
+                 [com.jcraft/jsch.agentproxy.pageant "0.0.5"]
+                 [com.jcraft/jsch.agentproxy.core "0.0.5"]
+                 [com.jcraft/jsch.agentproxy.jsch "0.0.5"]
+                 [com.jcraft/jsch "0.1.49"]
                  [org.jclouds.driver/jclouds-sshj "1.4.2"]
                  [org.jclouds.provider/aws-ec2 "1.4.2"]
                  [org.jclouds.provider/aws-s3 "1.4.2"]
