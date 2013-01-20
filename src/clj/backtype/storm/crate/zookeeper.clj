@@ -13,7 +13,7 @@
    [pallet.stevedore :as stevedore]
    [clojure.string :as string]
    [pallet.resource.package :as package]
-   [pallet.resource.exec-script :as exec-script]
+   [pallet.action.exec-script :as exec-script]
    [pallet.crate.crontab :as crontab]
   )
   (:use

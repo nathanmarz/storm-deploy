@@ -1,7 +1,9 @@
 (ns backtype.storm.crate.storm
   (:use [clojure.contrib.def :only [defnk]]
         [pallet.compute :only [running? primary-ip private-ip]]
-        [org.jclouds.compute :only [nodes-with-tag]]
+        [pallet.compute.jclouds]
+        [org.jclouds.compute2 :only [nodes-in-group]]
+
         [pallet.configure :only [compute-service-properties pallet-config]])
   (:require
    [backtype.storm.crate.zeromq :as zeromq]
@@ -12,31 +14,31 @@
    [pallet.resource.package :as package]
    [pallet.resource.directory :as directory]
    [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.exec-script :as exec-script]))
+   [pallet.action.exec-script :as exec-script]))
 
 (defn storm-config
   ([] (storm-config "default"))
   ([conf-name] (compute-service-properties (pallet-config) [conf-name])))
 
 (defn nimbus-ip [compute name]
-  (let [running-nodes (filter running? (nodes-with-tag (str "nimbus-" name) compute))]
+  (let [running-nodes (filter running? (map (partial jclouds-node->node compute) (nodes-in-group compute (str "nimbus-" name))))]
     (assert (= (count running-nodes) 1))
     (primary-ip (first running-nodes))))
 
 (defn nimbus-private-ip [compute name]
-  (let [running-nodes (filter running? (nodes-with-tag (str "nimbus-" name) compute))]
+  (let [running-nodes (filter running? (map (partial jclouds-node->node compute) (nodes-in-group compute (str "nimbus-" name))))]
     (assert (= (count running-nodes) 1))
     (private-ip (first running-nodes))))
 
 
 (defn zookeeper-ips [compute name]
   (let [running-nodes (filter running?
-                              (nodes-with-tag (str "zookeeper-" name) compute))]
+    (map (partial jclouds-node->node compute) (nodes-in-group compute (str "zookeeper-" name))))]
     (map primary-ip running-nodes)))
 
 (defn supervisor-ips [compute name]
   (let [running-nodes (filter running?
-                              (nodes-with-tag (str "supervisor-" name) compute))]
+    (map (partial jclouds-node->node compute) (nodes-in-group compute (str "supervisor-" name))))]
     (map primary-ip running-nodes)))
 
 (defn- install-dependencies [request]

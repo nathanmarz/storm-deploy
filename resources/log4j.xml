@@ -20,6 +20,16 @@
     </layout>
   </appender>
 
+  <appender name="LOGOFEVERYTHING" class="org.apache.log4j.DailyRollingFileAppender">
+      <param name="File" value="logs/everything.log" />
+      <param name="Append" value="true" />
+      <param name="DatePattern" value="'.'yyyy-MM-dd" />
+      <param name="Threshold" value="TRACE" />
+      <layout class="org.apache.log4j.PatternLayout">
+          <param name="ConversionPattern" value="%d %-5p [%c] (%t) %m%n" />
+      </layout>
+  </appender>
+
   <appender name="WIREFILE" class="org.apache.log4j.DailyRollingFileAppender">
     <param name="File" value="logs/jclouds-wire.log" />
     <param name="Append" value="true" />
@@ -86,13 +96,20 @@
     <appender-ref ref="ASYNCCOMPUTE" />
   </category>
 
-<!--
+  <category name="backtype.storm">
+      <priority value="DEBUG" />
+      <appender-ref ref="console" />
+  </category>
+
+  <category name="java.logging">
+      <priority value="INFO" />
+      <appender-ref ref="console" />
+  </category>
+
   <root>
-    <priority value ="INFO" />
-    <appender-ref ref="console" />
+    <priority value ="DEBUG" />
+    <!-- <appender-ref ref="console" /> -->
+      <appender-ref ref="LOGOFEVERYTHING" />
   </root>
-  -->
-
-
 
 </log4j:configuration>

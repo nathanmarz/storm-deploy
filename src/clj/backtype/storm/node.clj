@@ -23,9 +23,9 @@
    [pallet.resource.exec-script :as exec-script])
   (:use
    [backtype.storm config]
-   [pallet compute core resource]
+   [pallet compute core resource phase]
    [pallet [utils :only [make-user]]]
-   [org.jclouds.compute :only [nodes-with-tag]]
+   [org.jclouds.compute2 :only [nodes-in-group]]
    [clojure.walk]))
 
 (defn parse-release [release]
@@ -66,13 +66,13 @@
                                   req
                                   (:username *USER*)
                                   (:public-key-path *USER*)))
-            :configure (phase
+            :configure (phase-fn
                         (java/java :openjdk))}))
 
 (defn zookeeper-server-spec []
      (server-spec
       :extends (base-server-spec)
-      :phases {:configure (phase
+      :phases {:configure (phase-fn
                            (zookeeper/install :version "3.3.5")
                            (zookeeper/configure
                             :clientPort (storm-conf "storm.zookeeper.port")
@@ -83,25 +83,25 @@
 (defn storm-base-server-spec [name]
      (server-spec
       :extends (base-server-spec)
-      :phases {:post-configure (phase
+      :phases {:post-configure (phase-fn
                                 (storm/write-storm-yaml
                                  name
                                  storm-yaml-path))
-               :configure (phase
+               :configure (phase-fn
                            (configure-ssh-client :host-key-checking false))
-               :exec (phase
+               :exec (phase-fn
                       (storm/exec-daemon)
                       (ganglia/ganglia-finish))}))
 
 (defn supervisor-server-spec [name release]
      (server-spec
       :extends (storm-base-server-spec name)
-      :phases {:configure (phase
+      :phases {:configure (phase-fn
                            (ganglia/ganglia-node (nimbus-name name))
                            (storm/install-supervisor
                             release
                             "/mnt/storm"))
-               :post-configure (phase
+               :post-configure (phase-fn
                                 (ganglia/ganglia-finish)
                                 (storm/write-storm-exec
                                  "supervisor"))}))
@@ -121,19 +121,19 @@
 (defn nimbus-server-spec [name release]
      (server-spec
       :extends (storm-base-server-spec name)
-      :phases {:configure (phase
+      :phases {:configure (phase-fn
                            (ganglia/ganglia-master (nimbus-name name))
                            (storm/install-nimbus
                             release
                             "/mnt/storm")
                            (storm/install-ui)
                            (maybe-install-drpc release))
-               :post-configure (phase
+               :post-configure (phase-fn
                                 (ganglia/ganglia-finish)
                                 (storm/write-storm-exec
                                  "nimbus")
                                  )
-               :exec (phase
+               :exec (phase-fn
                         (storm/exec-ui)
                         (maybe-exec-drpc release))}))
 
