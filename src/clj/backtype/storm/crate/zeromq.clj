@@ -65,6 +65,11 @@
     (export (str "JAVA_HOME="
                  @(dirname @(dirname @(dirname @(update-alternatives "--list" java))))))
 
+    ("touch src/classdist_noinst.stamp")
+    (cd "src")
+    ("CLASSPATH=.:./.:$CLASSPATH javac -d . org/zeromq/ZMQ.java org/zeromq/App.java org/zeromq/ZMQForwarder.java org/zeromq/EmbeddedLibraryTools.java org/zeromq/ZMQQueue.java org/zeromq/ZMQStreamer.java org/zeromq/ZMQException.java")
+    (cd "..")
+    
     ("./autogen.sh")
     ("./configure")
     (make)
