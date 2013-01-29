@@ -1,1 +1,6 @@
 storm.local.dir: "/mnt/storm"
+storm.zookeeper.session.timeout: 120000
+nimbus.task.timeout.secs: 180
+nimbus.supervisor.timeout.secs: 360
+supervisor.worker.timeout.secs: 180
+worker.childopts: "-Xmx1024m -Djruby.compat.version=RUBY1_9"
