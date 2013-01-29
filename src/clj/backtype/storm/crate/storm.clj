@@ -54,18 +54,7 @@
    (package/package "zip")
    ))
 
-(defn storm-release-url [release]
-  (format "https://github.com/downloads/nathanmarz/storm/storm-%s.zip" release))
-
-(defn download-release [request release]
-  (-> request
-    (remote-file/remote-file
-       (format "$HOME/storm-%s.zip" release)
-       :url (storm-release-url release)
-       :no-versioning true)
-    ))
-
-(defn build-release-from-head [request]
+(defn get-release [request release]
   (-> request
     (exec-script/exec-checked-script
       "Build storm"
@@ -73,20 +62,16 @@
       (cd "$HOME")
       (mkdir -p "build")
       (cd "$HOME/build")
-      (if-not (directory? "storm")
-        (git clone "git://github.com/nathanmarz/storm.git"))
+      (when-not (directory? "storm")
+        (if @release
+          (git clone -b ~release "git://github.com/nathanmarz/storm.git")
+          (git clone "git://github.com/nathanmarz/storm.git")))
 
       (cd storm)
       (git pull)
       (sh "bin/build_release.sh")
       (cp "*.zip $HOME/")
       )
-    ))
-
-(defn get-release [request release]
-  (if release
-    (download-release request release)
-    (build-release-from-head request)
     ))
 
 (defn make [request release]
