@@ -63,7 +63,7 @@
       (mkdir -p "build")
       (cd "$HOME/build")
       (when-not (directory? "storm")
-        (if @release
+        (if ~release
           (git clone -b ~release "git://github.com/nathanmarz/storm.git")
           (git clone "git://github.com/nathanmarz/storm.git")))
 
