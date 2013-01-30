@@ -55,24 +55,31 @@
    ))
 
 (defn get-release [request release]
-  (-> request
-    (exec-script/exec-checked-script
-      "Build storm"
+  (let [url "git://github.com/nathanmarz/storm.git"
+       rl (if (empty? release) "" release)] ; empty string for pallet
 
-      (cd "$HOME")
-      (mkdir -p "build")
-      (cd "$HOME/build")
-      (when-not (directory? "storm")
-        (if ~release
-          (git clone -b ~release "git://github.com/nathanmarz/storm.git")
-          (git clone "git://github.com/nathanmarz/storm.git")))
+    (-> request
+      (exec-script/exec-checked-script
+        "Build storm"
+        (cd "$HOME")
+        (mkdir -p "build")
+        (cd "$HOME/build")
 
-      (cd storm)
-      (git pull)
-      (sh "bin/build_release.sh")
-      (cp "*.zip $HOME/")
+        (when-not (directory? "storm")
+          (if (not (empty? ~rl)) ; Check for release, use branch if present
+            (git clone -b ~rl ~url)
+            (git clone ~url) ; Default to master branch
+          )
+        )
+
+        (cd storm)
+        (git pull)
+        (bash "bin/build_release.sh")
+        (cp "*.zip $HOME/")
       )
-    ))
+    )
+  )
+)
 
 (defn make [request release]
   (->
