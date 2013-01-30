@@ -55,31 +55,28 @@
    ))
 
 (defn get-release [request release]
-  (def url "git://github.com/nathanmarz/storm.git")
+  (let [url "git://github.com/nathanmarz/storm.git"
+       rl (if (empty? release) "" release)] ; empty string for pallet
 
-  ; Set release to empty string if nil so that pallet will parse it properly
-  (if (empty? release)
-    (def release "")
-  )
+    (-> request
+      (exec-script/exec-checked-script
+        "Build storm"
+        (cd "$HOME")
+        (mkdir -p "build")
+        (cd "$HOME/build")
 
-  (-> request
-    (exec-script/exec-checked-script
-      "Build storm"
-      (cd "$HOME")
-      (mkdir -p "build")
-      (cd "$HOME/build")
-
-      (when-not (directory? "storm")
-        (if (not (empty? ~release)) ; Check for release, use branch if present
-          (git clone -b ~release ~url)
-          (git clone ~url) ; Default to master branch
+        (when-not (directory? "storm")
+          (if (not (empty? ~rl)) ; Check for release, use branch if present
+            (git clone -b ~rl ~url)
+            (git clone ~url) ; Default to master branch
+          )
         )
-      )
 
-      (cd storm)
-      (git pull)
-      (bash "bin/build_release.sh")
-      (cp "*.zip $HOME/")
+        (cd storm)
+        (git pull)
+        (bash "bin/build_release.sh")
+        (cp "*.zip $HOME/")
+      )
     )
   )
 )
