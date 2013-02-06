@@ -66,20 +66,14 @@
         (cd "$HOME/build")
 
         (when-not (directory? "storm")
-          (if (not (empty? ~rl)) ; Check for release, use branch if present
+          (if (not (empty? ~rl))
             (git clone -b ~rl ~url)
-            (git clone ~url) ; Default to master branch
-          )
-        )
+            (git clone ~url)))
 
         (cd storm)
         (git pull)
         (bash "bin/build_release.sh")
-        (cp "*.zip $HOME/")
-      )
-    )
-  )
-)
+        (cp "*.zip $HOME/")))))
 
 (defn make [request release]
   (->
