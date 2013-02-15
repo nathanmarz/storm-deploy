@@ -17,7 +17,7 @@
   [session]
   (-> session
       (package/packages
-       :aptitude ["rrdtool" "librrds-perl" "librrd-dev" "php5-gd"
+       :aptitude ["rrdtool" "librrds-perl" "librrd-dev" "php5-gd" "libapache2-mod-php5"
                   "ganglia-monitor" "ganglia-webfrontend" "gmetad"])
       (file/symbolic-link
        "/usr/share/ganglia-webfrontend" "/var/www/ganglia")))
