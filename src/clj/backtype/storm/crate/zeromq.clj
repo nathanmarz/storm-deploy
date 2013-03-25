@@ -1,6 +1,6 @@
 (ns backtype.storm.crate.zeromq
   (:require
-   [pallet.resource.exec-script :as exec-script]
+   [pallet.action.exec-script :as exec-script]
    [pallet.resource.package :as package]
    [pallet.resource.remote-directory :as remote-directory]
    [pallet.resource.directory :as directory]
@@ -58,13 +58,18 @@
     (var tmpdir (~directory/make-temp-dir "rf"))
     (cd (quoted @tmpdir))
     ;; use frozen version of jzmq
-    (git clone "https://github.com/nathanmarz/jzmq.git")
+    (git clone "git://github.com/nathanmarz/jzmq.git")
 
     (cd "jzmq")
 
     (export (str "JAVA_HOME="
                  @(dirname @(dirname @(dirname @(update-alternatives "--list" java))))))
 
+    ("touch src/classdist_noinst.stamp")
+    (cd "src")
+    ("CLASSPATH=.:./.:$CLASSPATH javac -d . org/zeromq/ZMQ.java org/zeromq/App.java org/zeromq/ZMQForwarder.java org/zeromq/EmbeddedLibraryTools.java org/zeromq/ZMQQueue.java org/zeromq/ZMQStreamer.java org/zeromq/ZMQException.java")
+    (cd "..")
+    
     ("./autogen.sh")
     ("./configure")
     (make)

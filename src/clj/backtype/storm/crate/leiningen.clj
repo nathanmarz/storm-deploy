@@ -1,7 +1,7 @@
 (ns backtype.storm.crate.leiningen
   (:require
    [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.exec-script :as exec-script]))
+   [pallet.action.exec-script :as exec-script]))
 
 ;; this is 1.5.2. freezing version to ensure deploy is stable
 (def download-url "https://raw.github.com/technomancy/leiningen/a1fa43400295d57a9acfed10735c1235904a9407/bin/lein")
