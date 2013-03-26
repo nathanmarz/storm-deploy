@@ -116,7 +116,7 @@
         (sg-service compute)
         region
         to-group
-        (UserIdGroupPair. user-id from-group)
+        (UserIdGroupPair. "" from-group)
         )
     (catch IllegalStateException _)
     )))
