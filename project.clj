@@ -1,8 +1,8 @@
 (defproject storm-deploy "0.0.6-SNAPSHOT"
-  :source-path "src/clj"
-  :test-path "test/clj"
-  :dev-resources-path "conf"
-  :run-aliases {:deploy backtype.storm.provision}
+  :source-paths ["src/clj"]
+  :test-paths ["test/clj"]
+  :profiles {:dev {:resource-paths ["conf"]}}
+  :aliases {"deploy-storm" ["run" "-m" "backtype.storm.provision"]}
 
   :repositories {
                  "sonatype" "https://oss.sonatype.org/content/repositories/releases"
@@ -39,6 +39,5 @@
                  [jvyaml "1.0.0"]]
 
   :dev-dependencies [[swank-clojure "1.2.1"]
-                     [org.cloudhoist/pallet-lein "0.5.2"]])
-
-
+                     [org.cloudhoist/pallet-lein "0.5.2"]]
+  :min-lein-version "2.0.0")
