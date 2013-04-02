@@ -13,6 +13,7 @@
                  [storm "0.5.4"]
                  [commons-codec "1.4"]
                  [org.cloudhoist/pallet "0.7.2"]
+                 [org.cloudhoist/splunk "0.7.0-alpha.1"]
                  [org.cloudhoist/pallet-jclouds "1.4.2"]
                  [org.cloudhoist/java "0.5.0"]
                  [org.cloudhoist/git "0.5.0"]

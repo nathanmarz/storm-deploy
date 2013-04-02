@@ -16,11 +16,14 @@
    [backtype.storm.crate.zookeeper :as zookeeper]
    [pallet.crate.ssh-key :as ssh-key]
    [pallet.action.service :as action-service]
+   [pallet.crate.splunk :as splunk]
 
    [pallet.resource.directory :as directory]
    [pallet.resource.service :as service]
    [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.exec-script :as exec-script])
+   [pallet.resource.exec-script :as exec-script]
+
+   [clojure.contrib.java-utils :as java-utils])
   (:use
    [backtype.storm config]
    [pallet compute core resource phase]
@@ -88,7 +91,18 @@
                                  name
                                  storm-yaml-path))
                :configure (phase-fn
-                           (configure-ssh-client :host-key-checking false))
+                           (configure-ssh-client :host-key-checking false)
+                           ((fn [session]
+                               (if (.exists (java-utils/file "conf/credentials.spl"))
+                                   (splunk/splunk session
+                                                  :forwarder true
+                                                  :inputs {"monitor:///home/storm/storm/logs/worker*.log" {:sourcetype "worker"}
+                                                           "monitor:///home/storm/storm/logs/supervisor*.log" {:sourcetype "supervisor"}
+                                                           "monitor:///home/storm/storm/logs/nimbus*.log" {:sourcetype "nimbus"}
+                                                           "monitor:///home/storm/storm/logs/drpc*.log" {:sourcetype "drpc"}
+                                                           "monitor:///home/storm/storm/logs/ui*.log" {:sourcetype "ui"} }
+                                                  :credentials "conf/credentials.spl")
+                                   session))))
                :exec (phase-fn
                       (storm/exec-daemon)
                       (ganglia/ganglia-finish))}))
