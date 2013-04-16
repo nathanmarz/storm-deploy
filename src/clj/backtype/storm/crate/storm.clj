@@ -222,3 +222,9 @@
            :content (mk-storm-yaml name local-storm-file (:compute request))
            :overwrite-changes true)))
 
+(defn write-storm-log-properties [request local-storm-log-properties-file]
+      (-> request
+          (remote-file/remote-file
+           "$HOME/storm/log4j/storm.log.properties"
+           :local-file local-storm-log-properties-file
+           :overwrite-changes true)))
