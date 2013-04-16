@@ -45,6 +45,10 @@
   (.getPath (ClassLoader/getSystemResource "storm.yaml"))
   )
 
+(def storm-log-properties-path
+  (.getPath (ClassLoader/getSystemResource "storm.log.properties"))
+  )
+
 (def storm-conf (read-storm-config))
 
 (defn nimbus-name [name]
@@ -100,7 +104,9 @@
                            (ganglia/ganglia-node (nimbus-name name))
                            (storm/install-supervisor
                             release
-                            "/mnt/storm"))
+                            "/mnt/storm")
+                           (storm/write-storm-log-properties 
+                            storm-log-properties-path))
                :post-configure (phase-fn
                                 (ganglia/ganglia-finish)
                                 (storm/write-storm-exec
@@ -126,6 +132,8 @@
                            (storm/install-nimbus
                             release
                             "/mnt/storm")
+                           (storm/write-storm-log-properties 
+                            storm-log-properties-path)
                            (storm/install-ui)
                            (maybe-install-drpc release))
                :post-configure (phase-fn
