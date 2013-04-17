@@ -8,6 +8,7 @@
    [backtype.storm.crate.leiningen :as leiningen]
    [backtype.storm.crate.zeromq :as zeromq]
    [backtype.storm.crate.ganglia :as ganglia]
+   [backtype.storm.crate.newrelic :as newrelic]
 
    [pallet.crate.git :as git]
    [pallet.crate.maven :as maven]
@@ -67,7 +68,10 @@
                                   (:username *USER*)
                                   (:public-key-path *USER*)))
             :configure (phase-fn
-                        (java/java :openjdk))}))
+                         (java/java :openjdk)
+                         (newrelic/install)
+                         (newrelic/configure (clusters-conf "newrelic.licensekey"))
+                         (newrelic/init))}))
 
 (defn zookeeper-server-spec []
      (server-spec
