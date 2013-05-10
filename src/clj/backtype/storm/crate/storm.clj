@@ -41,6 +41,16 @@
     (map (partial jclouds-node->node compute) (nodes-in-group compute (str "supervisor-" name))))]
     (map primary-ip running-nodes)))
 
+(defn zookeeper-private-ips [compute name]
+  (let [running-nodes (filter running?
+    (map (partial jclouds-node->node compute) (nodes-in-group compute (str "zookeeper-" name))))]
+    (map private-ip running-nodes)))
+
+(defn supervisor-private-ips [compute name]
+  (let [running-nodes (filter running?
+    (map (partial jclouds-node->node compute) (nodes-in-group compute (str "supervisor-" name))))]
+    (map private-ip running-nodes)))
+
 (defn- install-dependencies [request]
   (->
    request
@@ -193,26 +203,26 @@
       :mode 755)
       ))
 
-(defn mk-storm-yaml [name local-storm-file compute]
+(defn mk-storm-yaml [name local-storm-file compute & {:keys [on-server] :or {on-server true}}]
   (let [newline-join #(apply str (interpose "\n" (apply concat %&)))]
     (str
       (slurp local-storm-file)
       "\n"
       (newline-join
        ["storm.zookeeper.servers:"]
-       (concat (map #(str "  - \"" % "\"") (zookeeper-ips compute name)))
+       (concat (map #(str "  - \"" % "\"") ((if on-server zookeeper-private-ips zookeeper-ips) compute name)))
        []
-       [(str "nimbus.host: \"" (nimbus-ip compute name) "\"")]
+       [(str "nimbus.host: \"" ((if on-server nimbus-private-ip nimbus-ip) compute name) "\"")]
        ["drpc.servers:"]
-       [(str "  - \"" (nimbus-private-ip compute name) "\"")]
+       [(str "  - \"" ((if on-server nimbus-private-ip nimbus-ip) compute name) "\"")]
        [(str "storm.local.dir: \"/mnt/storm\"")]))))
 
-(defn mk-supervisor-yaml [compute name]
+(defn mk-supervisor-yaml [compute name & {:keys [on-server] :or {on-server true}}]
   (let [newline-join #(apply str (interpose "\n" (apply concat %&)))]
     (str
       (newline-join
        ["storm.supervisor.servers:"]
-       (concat (map #(str "  - \"" % "\"") (supervisor-ips compute name)))
+       (concat (map #(str "  - \"" % "\"") ((if on-server supervisor-private-ips supervisor-ips) compute name)))
        []))))
 
 (defn write-storm-yaml [request name local-storm-file]
