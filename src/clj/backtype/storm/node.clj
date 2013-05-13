@@ -182,7 +182,8 @@
      (group-spec
       (str "zookeeper-" name)
       :node-spec (node-spec-from-config "zookeeper"
-                                        [(storm-conf "storm.zookeeper.port")])
+                                        ;[(storm-conf "storm.zookeeper.port")])
+                                        [])
       :extends server-spec))
   ([name]
      (zookeeper name (zookeeper-server-spec))
@@ -192,7 +193,8 @@
   (group-spec
     (nimbus-name name)
     :node-spec (node-spec-from-config "nimbus"
-                                      [(storm-conf "nimbus.thrift.port")])
+                                      ;[(storm-conf "nimbus.thrift.port")])
+                                      [])
     :extends server-spec))
 
 (defn nimbus [name release]
@@ -202,7 +204,8 @@
   (group-spec
     (str "supervisor-" name)
     :node-spec (node-spec-from-config "supervisor"
-                                    (storm-conf "supervisor.slots.ports"))
+                                    ;(storm-conf "supervisor.slots.ports"))
+                                    [])
     :extends server-spec))
 
 (defn supervisor [name release]

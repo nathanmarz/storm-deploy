@@ -75,6 +75,15 @@
    :else (throw (IllegalArgumentException.
                  (str "Can't obtain IP protocol from argument of type " (type v))))))
 
+(def my-ip
+  (memoize
+    (fn []
+      (let [is (DataInputStream. (.openStream (URL. "http://whatismyip.akamai.com/")))
+            ret (.readLine is)]
+        (.close is)
+        ret
+        ))))
+
 (defn authorize
   "Adds permissions to a security group.
 
@@ -89,15 +98,6 @@
        (sg-service compute) (ebs/get-region region) (.getName group) (get-protocol protocol) from-port to-port (or ip-range "0.0.0.0/0"))
       (throw (IllegalArgumentException.
               (str "Can't find security group for name " group-name region ip-range from-port to-port))))))
-
-(def my-ip
-  (memoize
-    (fn []
-      (let [is (DataInputStream. (.openStream (URL. "http://whatismyip.akamai.com/")))
-            ret (.readLine is)]
-        (.close is)
-        ret
-        ))))
 
 (defn authorizeme [compute group-name port region]
   (try
