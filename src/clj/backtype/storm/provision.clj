@@ -48,8 +48,8 @@
 
 (defn sync-storm-conf-dir [aws name]
   (let [conf-dir (str (System/getProperty "user.home") "/.storm")
-        storm-yaml (storm/mk-storm-yaml name node/storm-yaml-path aws)
-        supervisor-yaml (storm/mk-supervisor-yaml aws name)]
+        storm-yaml (storm/mk-storm-yaml name node/storm-yaml-path aws :on-server false)
+        supervisor-yaml (storm/mk-supervisor-yaml aws name :on-server false)]
     (.mkdirs (File. conf-dir))
     (spit (str conf-dir "/storm.yaml") storm-yaml)
     (spit (str conf-dir "/supervisor.yaml") supervisor-yaml)))
@@ -61,6 +61,10 @@
   (authorizeme aws (jclouds-group "nimbus-" name) (node/storm-conf "nimbus.thrift.port") (my-region))
   (authorizeme aws (jclouds-group "nimbus-" name) (node/storm-conf "ui.port") (my-region))
   (authorizeme aws (jclouds-group "nimbus-" name) (node/storm-conf "drpc.port") (my-region))
+  (authorizeme aws (jclouds-group "zookeeper-" name) (node/storm-conf "storm.zookeeper.port") (my-region))
+  (authorizeme aws (jclouds-group "nimbus-" name) 22 (my-region))
+  (authorizeme aws (jclouds-group "zookeeper-" name) 22 (my-region))
+  (authorizeme aws (jclouds-group "supervisor-" name) 22 (my-region))
   (info "Attaching Complete."))
 
 (defn start-with-nodes! [aws name nimbus supervisor zookeeper]
@@ -80,12 +84,17 @@
 
     (authorize-group aws (my-region) (jclouds-group "nimbus-" name) (jclouds-group "supervisor-" name))
     (authorize-group aws (my-region) (jclouds-group "supervisor-" name) (jclouds-group "nimbus-" name))
+    (authorize-group aws (my-region) (jclouds-group "zookeeper-" name) (jclouds-group "nimbus-" name))
+    (authorize-group aws (my-region) (jclouds-group "zookeeper-" name) (jclouds-group "supervisor-" name))
     (debug "Finished authorizing groups")
 
     (lift nimbus :compute aws :phase [:post-configure :exec])
     (lift supervisor :compute aws :phase [:post-configure :exec])
     (debug "Finished post-configure and exec phases")
 
+    (revoke aws (jclouds-group "nimbus-" name) 22 :region (my-region))
+    (revoke aws (jclouds-group "zookeeper-" name) 22 :region (my-region))
+    (revoke aws (jclouds-group "supervisor-" name) 22 :region (my-region))
     (attach! aws name)
     (info "Provisioning Complete.")
     (print-all-ips! aws name)))
