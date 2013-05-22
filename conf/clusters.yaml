@@ -10,7 +10,7 @@ supervisor.image: "us-east-1/ami-d726abbe"         #64-bit ubuntu on us-east-1
 supervisor.hardware: "m1.xlarge"
 #supervisor.spot.price: 1.60
 
-zookeeper.count: 2
+zookeeper.count: 3
 zookeeper.image: "us-east-1/ami-d726abbe"         #64-bit ubuntu
 zookeeper.hardware: "m1.large"
 
