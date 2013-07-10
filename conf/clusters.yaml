@@ -5,9 +5,9 @@
 nimbus.image: "us-east-1/ami-d726abbe"         #64-bit ubuntu
 nimbus.hardware: "m1.large"
 
-supervisor.count: 6
-supervisor.image: "us-east-1/ami-d726abbe"         #64-bit ubuntu on us-east-1
-supervisor.hardware: "m1.xlarge"
+supervisor.count: 1
+supervisor.image: "us-east-1/ami-a73758ce"         #64-bit ubuntu on us-east-1
+supervisor.hardware: "cc2.8xlarge"
 #supervisor.spot.price: 1.60
 
 zookeeper.count: 3
