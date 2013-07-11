@@ -24,8 +24,8 @@
 (defn jclouds-group [& group-pieces]
   (str "jclouds#"
        (apply str group-pieces)
-       "#"
-       (my-region)
+       ;"#"
+       ;(my-region)
        ))
 
 (defn- print-ips-for-tag! [aws tag-str]

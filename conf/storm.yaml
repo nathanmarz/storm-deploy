@@ -4,7 +4,7 @@ nimbus.task.launch.secs: 240
 nimbus.task.timeout.secs: 240
 nimbus.supervisor.timeout.secs: 360
 supervisor.worker.timeout.secs: 240
-worker.childopts: "-Xmx3g -Djruby.compat.version=RUBY1_9 -XX:-PrintGC -XX:-PrintGCDetails"
+worker.childopts: "-Xmx1800m -Djruby.compat.version=RUBY1_9 -XX:-PrintGC -XX:-PrintGCDetails"
 supervisor.slots.ports:
     - 6700
     - 6701
