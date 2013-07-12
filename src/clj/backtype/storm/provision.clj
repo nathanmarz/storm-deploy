@@ -86,6 +86,8 @@
     (authorize-group aws (my-region) (jclouds-group "supervisor-" name) (jclouds-group "nimbus-" name))
     (authorize-group aws (my-region) (jclouds-group "zookeeper-" name) (jclouds-group "nimbus-" name))
     (authorize-group aws (my-region) (jclouds-group "zookeeper-" name) (jclouds-group "supervisor-" name))
+    (authorize-group aws (my-region) (jclouds-group "supervisor-" name) (jclouds-group "zookeeper-" name))
+    (authorize-group aws (my-region) (jclouds-group "nimbus-" name) (jclouds-group "zookeeper-" name))
     (debug "Finished authorizing groups")
 
     (lift nimbus :compute aws :phase [:post-configure :exec])
