@@ -142,13 +142,16 @@
          [name "Cluster name" "dev"]
          [release "Release version" nil]]
 
-        (cond 
+        (cond
          stop? (stop! aws name)
          start? (start! aws name release)
          upgrade? (upgrade! aws name release)
          attach? (attach! aws name)
          ips? (print-all-ips! aws name)
-         :else (println "Must pass --start or --stop or --attach"))))))
+         :else (println "Must pass --start, --stop , upgrade, --attach or --ips")))))
+  (shutdown-agents)
+  (println "Done.")
+  (System/exit 0))
 
 ;; DEBUGGING
 (comment
