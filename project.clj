@@ -35,6 +35,7 @@
                  [org.jclouds.driver/jclouds-sshj "1.5.2"]
                  [org.jclouds.provider/aws-ec2 "1.5.2"]
                  [org.jclouds.provider/aws-s3 "1.5.2"]
+
                  [log4j/log4j "1.2.14"]
                  [jvyaml "1.0.0"]]
 
