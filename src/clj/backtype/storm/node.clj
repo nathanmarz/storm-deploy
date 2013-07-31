@@ -97,7 +97,8 @@
       :phases {:post-configure (phase-fn
                                 (storm/write-storm-yaml
                                  name
-                                 storm-yaml-path))
+                                 storm-yaml-path
+                                 clusters-conf))
                :configure (phase-fn
                            (configure-ssh-client :host-key-checking false)
                            ((fn [session]

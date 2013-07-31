@@ -48,7 +48,7 @@
 
 (defn sync-storm-conf-dir [aws name]
   (let [conf-dir (str (System/getProperty "user.home") "/.storm")
-        storm-yaml (storm/mk-storm-yaml name node/storm-yaml-path aws :on-server false)
+        storm-yaml (storm/mk-storm-yaml name node/storm-yaml-path node/clusters-conf aws :on-server false)
         supervisor-yaml (storm/mk-supervisor-yaml aws name :on-server false)]
     (.mkdirs (File. conf-dir))
     (spit (str conf-dir "/storm.yaml") storm-yaml)

@@ -203,12 +203,14 @@
       :mode 755)
       ))
 
-(defn mk-storm-yaml [name local-storm-file compute & {:keys [on-server] :or {on-server true}}]
+(defn mk-storm-yaml [name local-storm-file cluster-config compute & {:keys [on-server] :or {on-server true}}]
   (let [newline-join #(apply str (interpose "\n" (apply concat %&)))]
     (str
       (slurp local-storm-file)
       "\n"
       (newline-join
+       ["supervisor.slots.ports:"]
+       (map #(str "  - " (+ 6700 %)) (range (cluster-config "supervisor.slots")))
        ["storm.zookeeper.servers:"]
        (concat (map #(str "  - \"" % "\"") ((if on-server zookeeper-private-ips zookeeper-ips) compute name)))
        []
@@ -225,11 +227,11 @@
        (concat (map #(str "  - \"" % "\"") ((if on-server supervisor-private-ips supervisor-ips) compute name)))
        []))))
 
-(defn write-storm-yaml [request name local-storm-file]
+(defn write-storm-yaml [request name local-storm-file cluster-config]
       (-> request
           (remote-file/remote-file
            "$HOME/storm/conf/storm.yaml"
-           :content (mk-storm-yaml name local-storm-file (:compute request))
+           :content (mk-storm-yaml name local-storm-file cluster-config (:compute request))
            :overwrite-changes true)))
 
 (defn write-storm-log-properties [request local-storm-log-properties-file]
