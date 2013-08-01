@@ -48,7 +48,7 @@
 
 (defn sync-storm-conf-dir [aws name]
   (let [conf-dir (str (System/getProperty "user.home") "/.storm")
-        storm-yaml (storm/mk-storm-yaml name node/storm-yaml-path node/clusters-conf aws :on-server false)
+        storm-yaml (storm/mk-storm-yaml name (node/storm-yaml-path name) (node/clusters-conf name) aws :on-server false)
         supervisor-yaml (storm/mk-supervisor-yaml aws name :on-server false)]
     (.mkdirs (File. conf-dir))
     (spit (str conf-dir "/storm.yaml") storm-yaml)
@@ -71,8 +71,8 @@
   (let [nimbus (node/nimbus* name nimbus)
         supervisor (node/supervisor* name supervisor)
         zookeeper (node/zookeeper name zookeeper)
-        sn (int (node/clusters-conf "supervisor.count" 1))
-        zn (int (node/clusters-conf "zookeeper.count" 1))]
+        sn (int ((node/clusters-conf name) "supervisor.count" 1))
+        zn (int ((node/clusters-conf name) "zookeeper.count" 1))]
     (info (format "Provisioning nodes [nn=1, sn=%d, zn=%d]" sn zn))
     (converge {nimbus 1
               supervisor sn
@@ -103,7 +103,7 @@
 
 (defn start! [aws name release]
   (println "Starting cluster with release" release)
-  (start-with-nodes! aws name (node/nimbus-server-spec name release) (node/supervisor-server-spec name release) (node/zookeeper-server-spec))
+  (start-with-nodes! aws name (node/nimbus-server-spec name release) (node/supervisor-server-spec name release) (node/zookeeper-server-spec name))
   )
 
 (defn upgrade-with-nodes! [aws name nimbus supervisor zookeeper]
@@ -121,7 +121,7 @@
 
 (defn upgrade! [aws name release]
   (println "Upgrading cluster with release" release)
-  (upgrade-with-nodes! aws name (node/nimbus-server-spec name release) (node/supervisor-server-spec name release) (node/zookeeper-server-spec))
+  (upgrade-with-nodes! aws name (node/nimbus-server-spec name release) (node/supervisor-server-spec name release) (node/zookeeper-server-spec name))
   )
 
 (defn stop! [aws name]

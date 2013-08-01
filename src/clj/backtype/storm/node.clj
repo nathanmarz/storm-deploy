@@ -40,17 +40,25 @@
        (take-while #(>= % 0))
        (some pos?)))
 
-;; CONSTANTS
-
-(def clusters-conf
-  (read-yaml-config "clusters.yaml"))
-
-(def storm-yaml-path
-  (.getPath (ClassLoader/getSystemResource "storm.yaml"))
+(defn conf-filename [name filename]
+  (let [full-filename (str name "/" filename)]
+    (if (.exists (File. (str "conf/" full-filename)))
+        full-filename
+        (conf-filename "default" filename)
+        )
+    )
   )
 
-(def storm-log-properties-path
-  (.getPath (ClassLoader/getSystemResource "storm.log.properties"))
+(defn clusters-conf [name]
+  (read-yaml-config (conf-filename name "clusters.yaml"))
+  )
+
+(defn storm-yaml-path [name]
+  (.getPath (ClassLoader/getSystemResource (conf-filename name "storm.yaml")))
+  )
+
+(defn storm-log-properties-path [name]
+  (.getPath (ClassLoader/getSystemResource (conf-filename name "storm.log.properties")))
   )
 
 (def storm-conf (read-storm-config))
@@ -68,7 +76,7 @@
 
 (def *USER* nil)
 
-(defn base-server-spec []
+(defn base-server-spec [name]
   (server-spec
    :phases {:bootstrap (fn [req] (automated-admin-user/automated-admin-user
                                   req
@@ -77,12 +85,12 @@
             :configure (phase-fn
                          (java/java :openjdk)
                          (newrelic/install)
-                         (newrelic/configure (clusters-conf "newrelic.licensekey"))
+                         (newrelic/configure ((clusters-conf name) "newrelic.licensekey"))
                          (newrelic/init))}))
 
-(defn zookeeper-server-spec []
+(defn zookeeper-server-spec [name]
      (server-spec
-      :extends (base-server-spec)
+      :extends (base-server-spec name)
       :phases {:configure (phase-fn
                            (zookeeper/install :version "3.3.5")
                            (zookeeper/configure
@@ -93,12 +101,12 @@
 
 (defn storm-base-server-spec [name]
      (server-spec
-      :extends (base-server-spec)
+      :extends (base-server-spec name)
       :phases {:post-configure (phase-fn
                                 (storm/write-storm-yaml
                                  name
-                                 storm-yaml-path
-                                 clusters-conf))
+                                 (storm-yaml-path name)
+                                 (clusters-conf name)))
                :configure (phase-fn
                            (configure-ssh-client :host-key-checking false)
                            ((fn [session]
@@ -125,7 +133,7 @@
                             release
                             "/mnt/storm")
                            (storm/write-storm-log-properties 
-                            storm-log-properties-path))
+                            (storm-log-properties-path name)))
                :post-configure (phase-fn
                                 (ganglia/ganglia-finish)
                                 (storm/write-storm-exec
@@ -152,7 +160,7 @@
                             release
                             "/mnt/storm")
                            (storm/write-storm-log-properties 
-                            storm-log-properties-path)
+                            (storm-log-properties-path name))
                            (storm/install-ui)
                            (maybe-install-drpc release))
                :post-configure (phase-fn
@@ -164,9 +172,9 @@
                         (storm/exec-ui)
                         (maybe-exec-drpc release))}))
 
-(defn node-spec-from-config [group-name inbound-ports]
+(defn node-spec-from-config [group-name name inbound-ports]
   (letfn [(assoc-with-conf-key [image image-key conf-key & {:keys [f] :or {f identity}}]
-            (if-let [val (clusters-conf (str group-name "." conf-key))]
+            (if-let [val ((clusters-conf name) (str group-name "." conf-key))]
               (assoc image image-key (f val))
               image))]
        (node-spec
@@ -183,17 +191,19 @@
      (group-spec
       (str "zookeeper-" name)
       :node-spec (node-spec-from-config "zookeeper"
+                                        name
                                         ;[(storm-conf "storm.zookeeper.port")])
                                         [])
       :extends server-spec))
   ([name]
-     (zookeeper name (zookeeper-server-spec))
+     (zookeeper name (zookeeper-server-spec name))
     ))
 
 (defn nimbus* [name server-spec]
   (group-spec
     (nimbus-name name)
     :node-spec (node-spec-from-config "nimbus"
+                                      name
                                       ;[(storm-conf "nimbus.thrift.port")])
                                       [])
     :extends server-spec))
@@ -205,8 +215,9 @@
   (group-spec
     (str "supervisor-" name)
     :node-spec (node-spec-from-config "supervisor"
-                                    ;(storm-conf "supervisor.slots.ports"))
-                                    [])
+                                      name
+                                      ;(storm-conf "supervisor.slots.ports"))
+                                      [])
     :extends server-spec))
 
 (defn supervisor [name release]
