@@ -37,7 +37,8 @@
                  [org.jclouds.provider/aws-s3 "1.5.2"]
 
                  [log4j/log4j "1.2.14"]
-                 [jvyaml "1.0.0"]]
+                 ;[jvyaml "1.0.0"]
+                 [clj-yaml "0.4.0"]]
 
   :dev-dependencies [[swank-clojure "1.2.1"]
                      [org.cloudhoist/pallet-lein "0.5.2"]]

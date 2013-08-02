@@ -1,9 +1,8 @@
 (ns backtype.storm.node
   (:import
-   [java.util Map List]
-   [org.jvyaml YAML]
-   [java.io FileReader File])
+   [java.io File])
   (:require
+   [clojure.java.io :as io]
    [backtype.storm.crate.storm :as storm]
    [backtype.storm.crate.leiningen :as leiningen]
    [backtype.storm.crate.zeromq :as zeromq]
@@ -24,6 +23,8 @@
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.exec-script :as exec-script]
 
+   [clj-yaml.core :as clj-yaml]
+
    [clojure.contrib.java-utils :as java-utils])
   (:use
    [backtype.storm config]
@@ -32,39 +33,36 @@
    [org.jclouds.compute2 :only [nodes-in-group]]
    [clojure.walk]))
 
-(defn parse-release [release]
-  (map #(Integer/parseInt %) (.split release "\\.")))
-
-(defn release> [release1 release2]
-  (->> (map - (parse-release release1) (parse-release release2))
-       (take-while #(>= % 0))
-       (some pos?)))
-
-(defn conf-filename [name filename]
-  (let [full-filename (str name "/" filename)]
-    (if (.exists (File. (str "conf/" full-filename)))
+(defn conf-filename [context filename]
+  (let [name (context :name)
+        confdir (context :confdir)
+        full-filename (.getPath (io/file confdir name filename))]
+    (if (.exists (io/file full-filename))
         full-filename
-        (conf-filename "default" filename)
-        )
-    )
-  )
+        (conf-filename (merge context {:name "default"}) filename))))
 
-(defn clusters-conf [name]
-  (read-yaml-config (conf-filename name "clusters.yaml"))
-  )
+(defn parse-yaml-config-file [context filename]
+  (clj-yaml/parse-string (slurp (conf-filename context filename))))
 
-(defn storm-yaml-path [name]
-  (.getPath (ClassLoader/getSystemResource (conf-filename name "storm.yaml")))
-  )
+(defn clusters-conf [context]
+  (parse-yaml-config-file context "clusters.yaml"))
 
-(defn storm-log-properties-path [name]
-  (.getPath (ClassLoader/getSystemResource (conf-filename name "storm.log.properties")))
-  )
+(defn storm-yaml [context]
+  (parse-yaml-config-file context "storm.yaml"))
+
+(defn storm-log-properties-path [context]
+  (conf-filename context "storm.log.properties"))
 
 (def storm-conf (read-storm-config))
 
-(defn nimbus-name [name]
-  (str "nimbus-" name))
+(defn nimbus-name [context]
+  (str "nimbus-" (context :name)))
+
+(defn zookeeper-name [context]
+  (str "zookeeper-" (context :name)))
+
+(defn supervisor-name [context]
+  (str "supervisor-" (context :name)))
 
 (defn configure-ssh-client [request & {:keys [host-key-checking]}]
   (let [yes-or-no #(if % "yes" "no")]
@@ -76,7 +74,7 @@
 
 (def *USER* nil)
 
-(defn base-server-spec [name]
+(defn base-server-spec [context]
   (server-spec
    :phases {:bootstrap (fn [req] (automated-admin-user/automated-admin-user
                                   req
@@ -85,96 +83,86 @@
             :configure (phase-fn
                          (java/java :openjdk)
                          (newrelic/install)
-                         (newrelic/configure ((clusters-conf name) "newrelic.licensekey"))
+                         (newrelic/configure ((clusters-conf context) :newrelic.licensekey))
                          (newrelic/init))}))
 
-(defn zookeeper-server-spec [name]
-     (server-spec
-      :extends (base-server-spec name)
-      :phases {:configure (phase-fn
-                           (zookeeper/install :version "3.3.5")
-                           (zookeeper/configure
-                            :clientPort (storm-conf "storm.zookeeper.port")
-                            :maxClientCnxns 0)
-                           (zookeeper/init))
-                           }))
+(defn zookeeper-server-spec [context]
+  (server-spec
+   :extends (base-server-spec context)
+   :phases {:configure (phase-fn
+                        (zookeeper/install :version "3.3.5")
+                        (zookeeper/configure
+                         :clientPort (storm-conf "storm.zookeeper.port")
+                         :maxClientCnxns 0)
+                        (zookeeper/init))
+                        }))
 
-(defn storm-base-server-spec [name]
-     (server-spec
-      :extends (base-server-spec name)
-      :phases {:post-configure (phase-fn
-                                (storm/write-storm-yaml
-                                 name
-                                 (storm-yaml-path name)
-                                 (clusters-conf name)))
-               :configure (phase-fn
-                           (configure-ssh-client :host-key-checking false)
-                           ((fn [session]
-                               (if (.exists (java-utils/file "conf/credentials.spl"))
-                                   (splunk/splunk session
-                                                  :forwarder true
-                                                  :inputs {"monitor:///home/storm/storm/logs/worker*.log" {:sourcetype "worker"}
-                                                           "monitor:///home/storm/storm/logs/supervisor*.log" {:sourcetype "supervisor"}
-                                                           "monitor:///home/storm/storm/logs/nimbus*.log" {:sourcetype "nimbus"}
-                                                           "monitor:///home/storm/storm/logs/drpc*.log" {:sourcetype "drpc"}
-                                                           "monitor:///home/storm/storm/logs/ui*.log" {:sourcetype "ui"} }
-                                                  :credentials "conf/credentials.spl")
-                                   session))))
-               :exec (phase-fn
-                      (storm/exec-daemon)
-                      (ganglia/ganglia-finish))}))
+(defn storm-base-server-spec [context]
+  (let [name (context :name)
+        ]
+    (server-spec
+     :extends (base-server-spec context)
+     :phases {:post-configure (phase-fn
+                               (storm/write-storm-yaml
+                                name
+                                (storm-yaml context)
+                                (clusters-conf context)))
+              :configure (phase-fn
+                          (configure-ssh-client :host-key-checking false)
+                          ((fn [session]
+                              (if (.exists (java-utils/file "conf/credentials.spl"))
+                                  (splunk/splunk session
+                                                 :forwarder true
+                                                 :inputs {"monitor:///home/storm/storm/logs/worker*.log" {:sourcetype "worker"}
+                                                          "monitor:///home/storm/storm/logs/supervisor*.log" {:sourcetype "supervisor"}
+                                                          "monitor:///home/storm/storm/logs/nimbus*.log" {:sourcetype "nimbus"}
+                                                          "monitor:///home/storm/storm/logs/drpc*.log" {:sourcetype "drpc"}
+                                                          "monitor:///home/storm/storm/logs/ui*.log" {:sourcetype "ui"} }
+                                                 :credentials "conf/credentials.spl")
+                                  session))))
+              :exec (phase-fn
+                     (storm/exec-daemon)
+                     (ganglia/ganglia-finish))})))
 
-(defn supervisor-server-spec [name release]
-     (server-spec
-      :extends (storm-base-server-spec name)
-      :phases {:configure (phase-fn
-                           (ganglia/ganglia-node (nimbus-name name))
-                           (storm/install-supervisor
-                            release
-                            "/mnt/storm")
-                           (storm/write-storm-log-properties 
-                            (storm-log-properties-path name)))
-               :post-configure (phase-fn
-                                (ganglia/ganglia-finish)
-                                (storm/write-storm-exec
-                                 "supervisor"))}))
+(defn supervisor-server-spec [context]
+  (server-spec
+   :extends (storm-base-server-spec context)
+   :phases {:configure (phase-fn
+                        (ganglia/ganglia-node (nimbus-name context))
+                        (storm/install-supervisor
+                         (context :release)
+                         "/mnt/storm")
+                        (storm/write-storm-log-properties 
+                         (storm-log-properties-path context)))
+            :post-configure (phase-fn
+                             (ganglia/ganglia-finish)
+                             (storm/write-storm-exec
+                              "supervisor"))}))
 
-(defn maybe-install-drpc [req release]
-  (if (or (not release) (release> release "0.5.3"))
-    (storm/install-drpc req)
-    req
-    ))
+(defn nimbus-server-spec [context]
+  (server-spec
+   :extends (storm-base-server-spec context)
+   :phases {:configure (phase-fn
+                        (ganglia/ganglia-master (nimbus-name context))
+                        (storm/install-nimbus
+                         (context :release)
+                         "/mnt/storm")
+                        (storm/write-storm-log-properties 
+                         (storm-log-properties-path context))
+                        (storm/install-ui)
+                        (storm/install-drpc))
+            :post-configure (phase-fn
+                             (ganglia/ganglia-finish)
+                             (storm/write-storm-exec
+                              "nimbus")
+                              )
+            :exec (phase-fn
+                     (storm/exec-ui)
+                     (storm/exec-drpc))}))
 
-(defn maybe-exec-drpc [req release]
-  (if (or (not release) (release> release "0.5.3"))
-    (storm/exec-drpc req)
-    req
-    ))
-
-(defn nimbus-server-spec [name release]
-     (server-spec
-      :extends (storm-base-server-spec name)
-      :phases {:configure (phase-fn
-                           (ganglia/ganglia-master (nimbus-name name))
-                           (storm/install-nimbus
-                            release
-                            "/mnt/storm")
-                           (storm/write-storm-log-properties 
-                            (storm-log-properties-path name))
-                           (storm/install-ui)
-                           (maybe-install-drpc release))
-               :post-configure (phase-fn
-                                (ganglia/ganglia-finish)
-                                (storm/write-storm-exec
-                                 "nimbus")
-                                 )
-               :exec (phase-fn
-                        (storm/exec-ui)
-                        (maybe-exec-drpc release))}))
-
-(defn node-spec-from-config [group-name name inbound-ports]
+(defn node-spec-from-config [context group-name inbound-ports]
   (letfn [(assoc-with-conf-key [image image-key conf-key & {:keys [f] :or {f identity}}]
-            (if-let [val ((clusters-conf name) (str group-name "." conf-key))]
+            (if-let [val ((clusters-conf context) (keyword (str group-name "." conf-key)))]
               (assoc image image-key (f val))
               image))]
        (node-spec
@@ -186,41 +174,37 @@
                    (assoc-with-conf-key :spot-price "spot.price" :f float)
                    ))))
 
-(defn zookeeper
-  ([name server-spec]
-     (group-spec
-      (str "zookeeper-" name)
-      :node-spec (node-spec-from-config "zookeeper"
-                                        name
-                                        ;[(storm-conf "storm.zookeeper.port")])
-                                        [])
-      :extends server-spec))
-  ([name]
-     (zookeeper name (zookeeper-server-spec name))
-    ))
-
-(defn nimbus* [name server-spec]
+(defn zookeeper* [context server-spec]
   (group-spec
-    (nimbus-name name)
-    :node-spec (node-spec-from-config "nimbus"
-                                      name
-                                      ;[(storm-conf "nimbus.thrift.port")])
+    (zookeeper-name context)
+    :node-spec (node-spec-from-config context
+                                      "zookeeper"
                                       [])
     :extends server-spec))
 
-(defn nimbus [name release]
-  (nimbus* name (nimbus-server-spec name release)))
+(defn zookeeper [context]
+  (zookeeper* context (zookeeper-server-spec context)))
 
-(defn supervisor* [name server-spec]
+(defn nimbus* [context server-spec]
   (group-spec
-    (str "supervisor-" name)
-    :node-spec (node-spec-from-config "supervisor"
-                                      name
-                                      ;(storm-conf "supervisor.slots.ports"))
+    (nimbus-name context)
+    :node-spec (node-spec-from-config context
+                                      "nimbus"
                                       [])
     :extends server-spec))
 
-(defn supervisor [name release]
-  (supervisor* name (supervisor-server-spec name release)))
+(defn nimbus [context]
+  (nimbus* context (nimbus-server-spec context)))
+
+(defn supervisor* [context server-spec]
+  (group-spec
+    (supervisor-name context)
+    :node-spec (node-spec-from-config context
+                                      "supervisor"
+                                      [])
+    :extends server-spec))
+
+(defn supervisor [context]
+  (supervisor* context (supervisor-server-spec context)))
 
 

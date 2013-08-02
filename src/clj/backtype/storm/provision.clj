@@ -34,45 +34,67 @@
     (info (str "PUBLIC:  " (clojure.string/join ", " (map primary-ip running-node))))
     (info (str "PRIVATE: " (clojure.string/join ", " (map private-ip running-node))))))
 
-(defn print-all-ips! [aws name]
-  (let [all-tags [(str "zookeeper-" name) (str "nimbus-" name) (str "supervisor-" name)]]
-       (doseq [tag all-tags]
-         (print-ips-for-tag! aws tag))))
+(defn print-all-ips! [context]
+  (let [name (context :name)
+        aws (context :aws)
+        all-tags [(str "zookeeper-" name) (str "nimbus-" name) (str "supervisor-" name)]
+       ]
+    (doseq [tag all-tags]
+      (print-ips-for-tag! aws tag)
+      )
+    )
+  )
 
-(defn converge! [name release aws sn zn nn]
-  (converge {(node/nimbus name release) nn
-             (node/supervisor name release) sn
-             (node/zookeeper name) zn
-             }
-            :compute aws))
+(defn converge! [context sn zn nn]
+  (let [name (context :name)
+        aws (context :aws)
+        release (context :release)
+        ]
+    (converge {(node/nimbus context) nn
+               (node/supervisor context) sn
+               (node/zookeeper context) zn
+               }
+              :compute aws
+              )
+    )
+  )
 
-(defn sync-storm-conf-dir [aws name]
-  (let [conf-dir (str (System/getProperty "user.home") "/.storm")
-        storm-yaml (storm/mk-storm-yaml name (node/storm-yaml-path name) (node/clusters-conf name) aws :on-server false)
-        supervisor-yaml (storm/mk-supervisor-yaml aws name :on-server false)]
-    (.mkdirs (File. conf-dir))
-    (spit (str conf-dir "/storm.yaml") storm-yaml)
-    (spit (str conf-dir "/supervisor.yaml") supervisor-yaml)))
+(defn sync-storm-conf-dir [context]
+  (let [name (context :name)
+        aws (context :aws)
+        storm-conf-dir (str (System/getProperty "user.home") "/.storm")
+        storm-yaml (storm/mk-storm-yaml name (node/storm-yaml context) (node/clusters-conf context) aws :on-server false)
+        supervisor-yaml (storm/mk-supervisor-yaml aws name :on-server false)
+        ]
+    (.mkdirs (File. storm-conf-dir))
+    (spit (str storm-conf-dir "/storm.yaml") storm-yaml)
+    (spit (str storm-conf-dir "/supervisor.yaml") supervisor-yaml)
+    )
+  )
 
-(defn attach! [aws name]
-  (info "Attaching to Available Cluster...")
-  (sync-storm-conf-dir aws name)
-  (authorizeme aws (jclouds-group "nimbus-" name) 80 (my-region))
-  (authorizeme aws (jclouds-group "nimbus-" name) (node/storm-conf "nimbus.thrift.port") (my-region))
-  (authorizeme aws (jclouds-group "nimbus-" name) (node/storm-conf "ui.port") (my-region))
-  (authorizeme aws (jclouds-group "nimbus-" name) (node/storm-conf "drpc.port") (my-region))
-  (authorizeme aws (jclouds-group "zookeeper-" name) (node/storm-conf "storm.zookeeper.port") (my-region))
-  (authorizeme aws (jclouds-group "nimbus-" name) 22 (my-region))
-  (authorizeme aws (jclouds-group "zookeeper-" name) 22 (my-region))
-  (authorizeme aws (jclouds-group "supervisor-" name) 22 (my-region))
-  (info "Attaching Complete."))
+(defn attach! [context]
+  (let [name (context :name)
+        aws (context :aws)]
+    (info "Attaching to Available Cluster...")
+    (sync-storm-conf-dir context)
+    (authorizeme aws (jclouds-group "nimbus-" name) 80 (my-region))
+    (authorizeme aws (jclouds-group "nimbus-" name) (node/storm-conf "nimbus.thrift.port") (my-region))
+    (authorizeme aws (jclouds-group "nimbus-" name) (node/storm-conf "ui.port") (my-region))
+    (authorizeme aws (jclouds-group "nimbus-" name) (node/storm-conf "drpc.port") (my-region))
+    (authorizeme aws (jclouds-group "zookeeper-" name) (node/storm-conf "storm.zookeeper.port") (my-region))
+    (authorizeme aws (jclouds-group "nimbus-" name) 22 (my-region))
+    (authorizeme aws (jclouds-group "zookeeper-" name) 22 (my-region))
+    (authorizeme aws (jclouds-group "supervisor-" name) 22 (my-region))
+    (info "Attaching Complete.")))
 
-(defn start-with-nodes! [aws name nimbus supervisor zookeeper]
-  (let [nimbus (node/nimbus* name nimbus)
-        supervisor (node/supervisor* name supervisor)
-        zookeeper (node/zookeeper name zookeeper)
-        sn (int ((node/clusters-conf name) "supervisor.count" 1))
-        zn (int ((node/clusters-conf name) "zookeeper.count" 1))]
+(defn start-with-nodes! [context nimbus supervisor zookeeper]
+  (let [name (context :name)
+        aws (context :aws)
+        nimbus (node/nimbus* context nimbus)
+        supervisor (node/supervisor* context supervisor)
+        zookeeper (node/zookeeper* context zookeeper)
+        sn (int ((node/clusters-conf context) "supervisor.count" 1))
+        zn (int ((node/clusters-conf context) "zookeeper.count" 1))]
     (info (format "Provisioning nodes [nn=1, sn=%d, zn=%d]" sn zn))
     (converge {nimbus 1
               supervisor sn
@@ -97,41 +119,45 @@
     (revoke aws (jclouds-group "nimbus-" name) 22 :region (my-region))
     (revoke aws (jclouds-group "zookeeper-" name) 22 :region (my-region))
     (revoke aws (jclouds-group "supervisor-" name) 22 :region (my-region))
-    (attach! aws name)
+    (attach! context)
     (info "Provisioning Complete.")
-    (print-all-ips! aws name)))
+    (print-all-ips! context)))
 
-(defn start! [aws name release]
-  (println "Starting cluster with release" release)
-  (start-with-nodes! aws name (node/nimbus-server-spec name release) (node/supervisor-server-spec name release) (node/zookeeper-server-spec name))
-  )
+(defn start! [context]
+  (let [release (context :release)]
+    (println "Starting cluster with release" release)
+    (start-with-nodes! context (node/nimbus-server-spec context) (node/supervisor-server-spec context) (node/zookeeper-server-spec context))))
 
-(defn upgrade-with-nodes! [aws name nimbus supervisor zookeeper]
-  (let [nimbus (node/nimbus* name nimbus)
-        supervisor (node/supervisor* name supervisor)
-        zookeeper (node/zookeeper name zookeeper)]
+(defn upgrade-with-nodes! [context nimbus supervisor zookeeper]
+  (let [name (context :name)
+        nimbus (node/nimbus* context nimbus)
+        supervisor (node/supervisor* context supervisor)
+        zookeeper (node/zookeeper* context zookeeper)
+        ]
 ;    (authorize-group aws (my-region) (jclouds-group "nimbus-" name) (jclouds-group "supervisor-" name))
 ;    (authorize-group aws (my-region) (jclouds-group "supervisor-" name) (jclouds-group "nimbus-" name))
 
 ;    (lift zookeeper :compute aws :phase [:configure])
 ;    (lift nimbus :compute aws :phase [:configure :post-configure :exec])
-    (lift supervisor :compute aws :phase [:configure :post-configure :exec])
+    (lift supervisor :compute (context :aws) :phase [:configure :post-configure :exec])
     (println "Upgrade Complete.")))
 
 
-(defn upgrade! [aws name release]
-  (println "Upgrading cluster with release" release)
-  (upgrade-with-nodes! aws name (node/nimbus-server-spec name release) (node/supervisor-server-spec name release) (node/zookeeper-server-spec name))
-  )
+(defn upgrade! [context]
+  (let [release (context :release)]
+    (println "Upgrading cluster with release" release)
+    (upgrade-with-nodes! context (node/nimbus-server-spec context) (node/supervisor-server-spec context) (node/zookeeper-server-spec context))))
 
-(defn stop! [aws name]
+(defn stop! [context]
   (println "Shutting Down nodes...")
-  (converge! name nil aws 0 0 0)
+  (converge! context 0 0 0)
   (println "Shutdown Finished."))
 
 (defn mk-aws []
   (let [storm-conf (-> (storm/storm-config "default")
-                       (update-in [:environment :user] util/resolve-keypaths))]
+                       (update-in [:environment :user] util/resolve-keypaths)
+                       )
+                   ]
     (compute-service-from-map storm-conf)))
 
 (defn -main [& args]
@@ -151,15 +177,26 @@
          [upgrade? "Upgrade existing cluster"]
          [ips? "Print Cluster IP Addresses?"]
          [name "Cluster name" "dev"]
-         [release "Release version" nil]]
+         ;ignore release because it can only really handle a fixed version
+         ;[release "Release version" nil]
+         [confdir "Conf directory location" "conf"]
+         ]
 
-        (cond
-         stop? (stop! aws name)
-         start? (start! aws name release)
-         upgrade? (upgrade! aws name release)
-         attach? (attach! aws name)
-         ips? (print-all-ips! aws name)
-         :else (println "Must pass --start, --stop , upgrade, --attach or --ips")))))
+        (let [context {:name name
+                       :release "0.8.3" ;current version we're set up to work with
+                       :confdir confdir
+                       :aws aws
+                       }
+                      ]
+          (cond
+           stop? (stop! context)
+           start? (start! context)
+           upgrade? (upgrade! context)
+           attach? (attach! context)
+           ips? (print-all-ips! context)
+           :else (println "Must pass --start, --stop , upgrade, --attach or --ips"))
+          )
+        )))
   (shutdown-agents)
   (println "Done.")
   (System/exit 0))

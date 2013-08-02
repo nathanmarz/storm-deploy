@@ -14,7 +14,8 @@
    [pallet.resource.package :as package]
    [pallet.resource.directory :as directory]
    [pallet.resource.remote-file :as remote-file]
-   [pallet.action.exec-script :as exec-script]))
+   [pallet.action.exec-script :as exec-script]
+   [clj-yaml.core :as clj-yaml]))
 
 (defn storm-config
   ([] (storm-config "default"))
@@ -61,8 +62,7 @@
    (zeromq/install-jzmq :version "2.1.0")
    (package/package "daemontools")
    (package/package "unzip")
-   (package/package "zip")
-   ))
+   (package/package "zip")))
 
 (defn get-release [request release]
   (let [url "git://github.com/nathanmarz/storm.git"
@@ -109,8 +109,7 @@
      )
     (directory/directory "$HOME/daemon/supervise" :owner "storm" :mode "700")
     (directory/directory "$HOME/storm/logs" :owner "storm" :mode "700")
-    (directory/directory "$HOME/storm/bin" :mode "755")
-    ))
+    (directory/directory "$HOME/storm/bin" :mode "755")))
 
 (defn install-supervisor [request release local-dir-path]
   (->
@@ -131,8 +130,7 @@
               python bin/storm ui")
        :overwrite-changes true
        :literal true
-       :mode 755)
-      ))
+       :mode 755)))
 
 (defn write-drpc-exec [request path]
   (-> request
@@ -145,24 +143,21 @@
               python bin/storm drpc")
        :overwrite-changes true
        :literal true
-       :mode 755)
-      ))
+       :mode 755)))
 
 (defn install-ui [request]
   (-> request
     (directory/directory "$HOME/ui" :owner "storm" :mode "700")
     (directory/directory "$HOME/ui/logs" :owner "storm" :mode "700")
     (directory/directory "$HOME/ui/supervise" :owner "storm" :mode "700")
-    (write-ui-exec "$HOME/ui/run")
-    ))
+    (write-ui-exec "$HOME/ui/run")))
 
 (defn install-drpc [request]
   (-> request
     (directory/directory "$HOME/drpc" :owner "storm" :mode "700")
     (directory/directory "$HOME/drpc/logs" :owner "storm" :mode "700")
     (directory/directory "$HOME/drpc/supervise" :owner "storm" :mode "700")
-    (write-drpc-exec "$HOME/drpc/run")
-    ))
+    (write-drpc-exec "$HOME/drpc/run")))
 
 (defn install-nimbus [request release local-dir-path]
   (->
@@ -177,18 +172,15 @@
    (exec-script/exec-script
     (cd "$HOME/daemon")
     "ps ax | grep backtype.storm | grep -v grep | awk '{print $1}' | xargs kill -9\n\n"
-    "sudo -u storm -H nohup supervise . &"
-    )))
+    "sudo -u storm -H nohup supervise . &")))
 
 (defn exec-ui [request]
   (exec-script/exec-script request
-    "sudo -u storm -H nohup supervise ~storm/ui > nohup-ui.log &"
-    ))
+    "sudo -u storm -H nohup supervise ~storm/ui > nohup-ui.log &"))
 
 (defn exec-drpc [request]
   (exec-script/exec-script request
-    "sudo -u storm -H nohup supervise ~storm/drpc > nohup-drpc.log &"
-    ))
+    "sudo -u storm -H nohup supervise ~storm/drpc > nohup-drpc.log &"))
 
 (defn write-storm-exec [request name]
   (-> request
@@ -200,24 +192,18 @@
                 python bin/storm " name)
       :overwrite-changes true
       :literal true
-      :mode 755)
-      ))
+      :mode 755)))
 
-(defn mk-storm-yaml [name local-storm-file cluster-config compute & {:keys [on-server] :or {on-server true}}]
-  (let [newline-join #(apply str (interpose "\n" (apply concat %&)))]
-    (str
-      (slurp local-storm-file)
-      "\n"
-      (newline-join
-       ["supervisor.slots.ports:"]
-       (map #(str "  - " (+ 6700 %)) (range (cluster-config "supervisor.slots")))
-       ["storm.zookeeper.servers:"]
-       (concat (map #(str "  - \"" % "\"") ((if on-server zookeeper-private-ips zookeeper-ips) compute name)))
-       []
-       [(str "nimbus.host: \"" ((if on-server nimbus-private-ip nimbus-ip) compute name) "\"")]
-       ["drpc.servers:"]
-       [(str "  - \"" ((if on-server nimbus-private-ip nimbus-ip) compute name) "\"")]
-       [(str "storm.local.dir: \"/mnt/storm\"")]))))
+(defn mk-storm-yaml [name local-storm-yaml cluster-config compute & {:keys [on-server] :or {on-server true}}]
+  (clj-yaml/generate-string
+    (merge
+      local-storm-yaml
+      {:supervisor.slots.ports (map #(+ 6700 %) (range (cluster-config :supervisor.slots)))
+       :storm.zookeeper.servers ((if on-server zookeeper-private-ips zookeeper-ips) compute name)
+       :nimbus.host ((if on-server nimbus-private-ip nimbus-ip) compute name)
+       :drpc.servers ((if on-server nimbus-private-ip nimbus-ip) compute name)
+       :storm.local.dir "/mnt/storm"})
+    :dumper-options {:flow-style :block})) ;storm uses yaml 1.0, so must be block
 
 (defn mk-supervisor-yaml [compute name & {:keys [on-server] :or {on-server true}}]
   (let [newline-join #(apply str (interpose "\n" (apply concat %&)))]
@@ -227,11 +213,11 @@
        (concat (map #(str "  - \"" % "\"") ((if on-server supervisor-private-ips supervisor-ips) compute name)))
        []))))
 
-(defn write-storm-yaml [request name local-storm-file cluster-config]
+(defn write-storm-yaml [request name local-storm-yaml cluster-config]
       (-> request
           (remote-file/remote-file
            "$HOME/storm/conf/storm.yaml"
-           :content (mk-storm-yaml name local-storm-file cluster-config (:compute request))
+           :content (mk-storm-yaml name local-storm-yaml cluster-config (:compute request))
            :overwrite-changes true)))
 
 (defn write-storm-log-properties [request local-storm-log-properties-file]
