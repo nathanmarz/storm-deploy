@@ -9,10 +9,10 @@
 (defn install [request]
   (-> request
       (remote-file/remote-file
-       "/usr/local/bin/lein"
+       "/usr/local/bin/lein1"
        :url download-url
        :owner "root"
        :mode 755)
       (exec-script/exec-script
        (export "LEIN_ROOT=1")
-       ("/usr/local/bin/lein"))))
+       ("/usr/local/bin/lein1"))))
