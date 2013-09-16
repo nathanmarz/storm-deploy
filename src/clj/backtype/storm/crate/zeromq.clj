@@ -22,7 +22,7 @@
 
 (defn install
   "Install zeromq from source."
-  [request & {:keys [version] :or {version "2.0.10"}}]
+  [request & {:keys [version] :or {version "2.2.0"}}]
   (->
    request
    (package/packages
