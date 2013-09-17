@@ -99,6 +99,7 @@
 
 (defn storm-base-server-spec [context]
   (let [name (context :name)
+        confdir (context :confdir)
         ]
     (server-spec
      :extends (base-server-spec context)
@@ -110,7 +111,7 @@
               :configure (phase-fn
                           (configure-ssh-client :host-key-checking false)
                           ((fn [session]
-                              (if (.exists (java-utils/file "conf/credentials.spl"))
+                              (if (.exists (io/file confdir "credentials.spl"))
                                   (splunk/splunk session
                                                  :forwarder true
                                                  :inputs {"monitor:///home/storm/storm/logs/worker*.log" {:sourcetype "worker"}
@@ -118,7 +119,7 @@
                                                           "monitor:///home/storm/storm/logs/nimbus*.log" {:sourcetype "nimbus"}
                                                           "monitor:///home/storm/storm/logs/drpc*.log" {:sourcetype "drpc"}
                                                           "monitor:///home/storm/storm/logs/ui*.log" {:sourcetype "ui"} }
-                                                 :credentials "conf/credentials.spl")
+                                                 :credentials (.getPath (io/file confdir "credentials.spl")))
                                   session))))
               :exec (phase-fn
                      (storm/exec-daemon)
