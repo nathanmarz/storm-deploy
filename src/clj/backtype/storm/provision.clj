@@ -156,7 +156,11 @@
                                   ["--attach" "Attach to cluster" :flag true :default false]
                                   ["--show-ips" "Print cluster IP addresses" :flag true :default false]
                                   ["--name" "Cluster name" :default "dev"]
-                                  ["--confdir" "Conf directory location" :default "conf"])
+                                  ["--confdir" "Conf directory location" :default "conf"]
+                                  ["--clusters-config" "Hashmap of custom cluster config options"
+                                    :parse-fn read-string]
+                                  ["--storm-config" "Hashmap of custom storm config options"
+                                    :parse-fn read-string])
             context (merge opts {:release "0.8.3" ;current version we're set up to work with
                                     :aws aws})]
         (cond
@@ -164,7 +168,7 @@
           (opts :start) (start! context)
           (opts :attach) (attach! context)
           (opts :show-ips) (print-all-ips! context)
-          :else (println banner))))
+          :else (println args (context :clusters-config) banner))))
   (shutdown-agents)
   (println "Done.")
   (System/exit 0)))
