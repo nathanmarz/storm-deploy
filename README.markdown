@@ -18,6 +18,10 @@ The deploy also installs [Ganglia](http://ganglia.sourceforge.net/) which provid
 
 This project is a fork of the original storm-deploy that adds a number of features. We made the decision to fork rather than contribute because we wanted to make significant changes to the way storm-deploy works. You can check out the [original project](http://github.com/nathanmarz/storm-deploy), also here on GitHub.
 
+## Branches
+
+The 'development' branch contains the latest version of the code we are working on that is probably stable, but hasn't been extensively tried out. Think of it as the beta branch. The 'master' branch always contains what we believe to be a stable version of the code.
+
 ## Help
 
 If you run into any issues, the best place to ask for help is [mailing list](http://groups.google.com/group/storm-user). Be sure to indicate your are using the adsummos fork of storm-deploy and not the original. Otherwise you may get confusing advice.
