@@ -1,6 +1,6 @@
 (ns backtype.storm.provision
   (:import [java.io File])
-  (:use [clojure.contrib.command-line]
+  (:use [clojure.tools.cli :only [cli]]
         [pallet.compute :exclude [admin-user]]
         [backtype.storm security]
         [pallet.core]
@@ -128,26 +128,6 @@
     (println "Starting cluster with release" release)
     (start-with-nodes! context (node/nimbus-server-spec context) (node/supervisor-server-spec context) (node/zookeeper-server-spec context))))
 
-(defn upgrade-with-nodes! [context nimbus supervisor zookeeper]
-  (let [name (context :name)
-        nimbus (node/nimbus* context nimbus)
-        supervisor (node/supervisor* context supervisor)
-        zookeeper (node/zookeeper* context zookeeper)
-        ]
-;    (authorize-group aws (my-region) (jclouds-group "nimbus-" name) (jclouds-group "supervisor-" name))
-;    (authorize-group aws (my-region) (jclouds-group "supervisor-" name) (jclouds-group "nimbus-" name))
-
-;    (lift zookeeper :compute aws :phase [:configure])
-;    (lift nimbus :compute aws :phase [:configure :post-configure :exec])
-    (lift supervisor :compute (context :aws) :phase [:configure :post-configure :exec])
-    (println "Upgrade Complete.")))
-
-
-(defn upgrade! [context]
-  (let [release (context :release)]
-    (println "Upgrading cluster with release" release)
-    (upgrade-with-nodes! context (node/nimbus-server-spec context) (node/supervisor-server-spec context) (node/zookeeper-server-spec context))))
-
 (defn stop! [context]
   (println "Shutting Down nodes...")
   (converge! context 0 0 0)
@@ -169,37 +149,25 @@
         ]
     (System/setProperty "jna.nosys" "true")
     (with-var-roots [node/*USER* user]
-      (with-command-line args
-        "Provisioning tool for Storm Clusters"
-        [[start? "Start Cluster?"]
-         [stop? "Shutdown Cluster?"]
-         [attach? "Attach to Cluster?"]
-         [upgrade? "Upgrade existing cluster"]
-         [ips? "Print Cluster IP Addresses?"]
-         [name "Cluster name" "dev"]
-         ;ignore release because it can only really handle a fixed version
-         ;[release "Release version" nil]
-         [confdir "Conf directory location" "conf"]
-         ]
-
-        (let [context {:name name
-                       :release "0.8.3" ;current version we're set up to work with
-                       :confdir confdir
-                       :aws aws
-                       }
-                      ]
-          (cond
-           stop? (stop! context)
-           start? (start! context)
-           upgrade? (upgrade! context)
-           attach? (attach! context)
-           ips? (print-all-ips! context)
-           :else (println "Must pass --start, --stop , upgrade, --attach or --ips"))
-          )
-        )))
+      (let [[opts args banner] (cli args
+                                  "Provisioning tool for Storm clusters"
+                                  ["--start" "Start cluster" :flag true :default false]
+                                  ["--stop" "Stop cluster" :flag true :default false]
+                                  ["--attach" "Attach to cluster" :flag true :default false]
+                                  ["--show-ips" "Print cluster IP addresses" :flag true :default false]
+                                  ["--name" "Cluster name" :default "dev"]
+                                  ["--confdir" "Conf directory location" :default "conf"])
+            context (merge opts {:release "0.8.3" ;current version we're set up to work with
+                                    :aws aws})]
+        (cond
+          (opts :stop) (stop! context)
+          (opts :start) (start! context)
+          (opts :attach) (attach! context)
+          (opts :show-ips) (print-all-ips! context)
+          :else (println banner))))
   (shutdown-agents)
   (println "Done.")
-  (System/exit 0))
+  (System/exit 0)))
 
 ;; DEBUGGING
 (comment

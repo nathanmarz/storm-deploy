@@ -23,9 +23,7 @@
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.exec-script :as exec-script]
 
-   [clj-yaml.core :as clj-yaml]
-
-   [clojure.contrib.java-utils :as java-utils])
+   [clj-yaml.core :as clj-yaml])
   (:use
    [backtype.storm config]
    [pallet compute core resource phase]
