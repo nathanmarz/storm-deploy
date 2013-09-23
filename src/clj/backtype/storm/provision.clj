@@ -93,8 +93,8 @@
         nimbus (node/nimbus* context nimbus)
         supervisor (node/supervisor* context supervisor)
         zookeeper (node/zookeeper* context zookeeper)
-        sn (int ((node/clusters-conf context) "supervisor.count" 1))
-        zn (int ((node/clusters-conf context) "zookeeper.count" 1))]
+        sn (int ((node/clusters-conf context) :supervisor.count 1))
+        zn (int ((node/clusters-conf context) :zookeeper.count 1))]
     (info (format "Provisioning nodes [nn=1, sn=%d, zn=%d]" sn zn))
     (converge {nimbus 1
               supervisor sn
