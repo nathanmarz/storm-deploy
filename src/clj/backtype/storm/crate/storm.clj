@@ -54,9 +54,9 @@
    (package/package "zip")
    ))
 
-(defn get-release [request release]
+(defn get-release [request branch commit]
   (let [url "git://github.com/nathanmarz/storm.git"
-       rl (if (empty? release) "" release)] ; empty string for pallet
+       sha1 (if (empty? commit) "" commit)] ; empty string for pallet
 
     (-> request
       (exec-script/exec-checked-script
@@ -66,23 +66,24 @@
         (cd "$HOME/build")
 
         (when-not (directory? "storm")
-          (if (not (empty? ~rl))
-            (git clone -b ~rl ~url)
-            (git clone ~url)))
+          (git clone -b branch ~url ))
 
         (cd storm)
         (git pull)
+        (if (not (empty? ~sha1)) 
+          (git checkout -b newbranch ~sha1)
+          )
         (bash "bin/build_release.sh")
         (cp "*.zip $HOME/")))))
 
-(defn make [request release]
+(defn make [request branch commit]
   (->
    request
    (exec-script/exec-checked-script
      "clean up home"
      (cd "$HOME")
      (rm "-f *.zip"))
-   (get-release release)
+   (get-release branch commit)
    (exec-script/exec-checked-script
      "prepare daemon"
      (cd "$HOME")
@@ -91,6 +92,7 @@
      (ln "-s $HOME/`ls | grep zip | sed s/.zip//` storm")
 
      (mkdir -p "daemon")
+     (mkdir -p "$HOME/storm/log4j")
      (chmod "755" "$HOME/storm/log4j")
      (touch "$HOME/storm/log4j/storm.log.properties")
      (touch "$HOME/storm/log4j/log4j.properties")
@@ -102,13 +104,13 @@
     (directory/directory "$HOME/storm/bin" :mode "755")
     ))
 
-(defn install-supervisor [request release local-dir-path]
+(defn install-supervisor [request branch commit local-dir-path]
   (->
    request
    (install-dependencies)
    (directory/directory local-dir-path :owner "storm" :mode "700")
 
-   (make release)))
+   (make branch commit)))
 
 (defn write-ui-exec [request path]
   (-> request
@@ -154,12 +156,12 @@
     (write-drpc-exec "$HOME/drpc/run")
     ))
 
-(defn install-nimbus [request release local-dir-path]
+(defn install-nimbus [request branch commit local-dir-path]
   (->
    request
    (directory/directory local-dir-path :owner "storm" :mode "700")
    (install-dependencies)
-   (make release)))
+   (make branch commit)))
 
 (defn exec-daemon [request]
   (->

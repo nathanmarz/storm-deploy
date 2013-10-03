@@ -35,9 +35,9 @@
        (doseq [tag all-tags]
          (print-ips-for-tag! aws tag))))
 
-(defn converge! [name release aws sn zn nn]
-  (converge {(node/nimbus name release) nn
-             (node/supervisor name release) sn
+(defn converge! [name branch commit aws sn zn nn]
+  (converge {(node/nimbus name branch commit) nn
+             (node/supervisor name branch commit) sn
              (node/zookeeper name) zn
              }
             :compute aws))
@@ -86,9 +86,9 @@
     (info "Provisioning Complete.")
     (print-all-ips! aws name)))
 
-(defn start! [aws name release]
-  (println "Starting cluster with release" release)
-  (start-with-nodes! aws name (node/nimbus-server-spec name release) (node/supervisor-server-spec name release) (node/zookeeper-server-spec))
+(defn start! [aws name branch commit]
+  (println "Starting cluster with storm branch " branch (if (empty? commit) "" (str " and commit " commit)))
+  (start-with-nodes! aws name (node/nimbus-server-spec name branch commit) (node/supervisor-server-spec name branch commit) (node/zookeeper-server-spec))
   )
 
 (defn upgrade-with-nodes! [aws name nimbus supervisor zookeeper]
@@ -104,14 +104,14 @@
     (println "Upgrade Complete.")))
 
 
-(defn upgrade! [aws name release]
-  (println "Upgrading cluster with release" release)
-  (upgrade-with-nodes! aws name (node/nimbus-server-spec name release) (node/supervisor-server-spec name release) (node/zookeeper-server-spec))
+(defn upgrade! [aws name branch commit]
+  (println "Upgrading cluster with storm branch " branch (if (empty? commit) "" (str " and commit " commit)))
+  (upgrade-with-nodes! aws name (node/nimbus-server-spec name branch commit) (node/supervisor-server-spec name branch commit) (node/zookeeper-server-spec))
   )
 
 (defn stop! [aws name]
   (println "Shutting Down nodes...")
-  (converge! name nil aws 0 0 0)
+  (converge! name nil nil aws 0 0 0)
   (println "Shutdown Finished."))
 
 (defn mk-aws []
@@ -136,12 +136,13 @@
          [upgrade? "Upgrade existing cluster"]
          [ips? "Print Cluster IP Addresses?"]
          [name "Cluster name" "dev"]
-         [release "Release version" nil]]
+         [branch "Branch" "master"]; default branch is master.
+         [commit "Commit SHA1" nil]]; default is not to pass a commit
 
         (cond
          stop? (stop! aws name)
-         start? (start! aws name release)
-         upgrade? (upgrade! aws name release)
+         start? (start! aws name branch commit)
+         upgrade? (upgrade! aws name branch commit)
          attach? (attach! aws name)
          ips? (print-all-ips! aws name)
          :else (println "Must pass --start, --stop , upgrade, --attach or --ips")))))
