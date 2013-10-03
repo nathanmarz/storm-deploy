@@ -97,6 +97,7 @@
      (ln "-s $HOME/`ls | grep zip | sed s/.zip//` storm")
 
      (mkdir -p "daemon")
+     (mkdir -p "$HOME/storm/log4j")
      (chmod "755" "$HOME/storm/log4j")
      (touch "$HOME/storm/log4j/storm.log.properties")
      (touch "$HOME/storm/log4j/log4j.properties")
