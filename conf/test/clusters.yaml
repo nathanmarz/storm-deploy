@@ -1,0 +1,5 @@
+# turn down supervisor and zookeeper to 1
+# this is intended for testing things like changes to storm-deploy
+# without spending too much money
+supervisor.count: 1
+zookeeper.count: 1

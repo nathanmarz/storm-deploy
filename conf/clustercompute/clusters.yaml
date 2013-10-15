@@ -1,0 +1,4 @@
+supervisor.count: 1
+supervisor.image: "us-east-1/ami-ca700ca3"         #64-bit ubuntu for hvm on us-east-1
+supervisor.hardware: "cc2.8xlarge"
+supervisor.slots: 32
