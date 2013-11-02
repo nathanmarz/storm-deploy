@@ -66,7 +66,7 @@
         (cd "$HOME/build")
 
         (when-not (directory? "storm")
-          (git clone -b branch ~url ))
+          (git clone -b ~branch ~url ))
 
         (cd storm)
         (git pull)
