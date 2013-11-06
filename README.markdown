@@ -74,7 +74,15 @@ The deploy needs:
 
 ### Configs
 
-You can create configs for each cluster you run so you don't have to edit the defaut configs all the time. In the storm-deploy project, there is a `conf` directory that contains `default` and a few other subdirectories of example cluster configs. When you specify a name for your cluster, like 'mycluster', storm-deploy will look for config files in `conf/mycluster/`. If it doesn't find one or all of them, it looks for them in the `conf/default` directory.
+You can create configs for each cluster you run so you don't have to edit the defaut configs all the time. In the storm-deploy project, there is a `conf` directory that contains `default` and a few other subdirectories of example cluster configs. When you specify a name for your cluster, like 'mycluster', storm-deploy will look for config files in `conf/mycluster/`.
+
+Configuration options can also be specified on the command line by passing a hashmap with the key as conf file keyword.
+
+```
+lein deploy-storm --start --name mycluster --clusters-config "{:supervisor.count 1}" --storm-config "{:supervisor.worker.timeout.secs 600}"
+```
+
+The config used will be built by first taking the default config, merging in whatever is in the named config, and finally applying any command line specified configurations.
 
 You can also specify a conf directory in a custom location (note that this must also have a `default` subdirectory) using the `--confdir` commandline option.
 
@@ -93,7 +101,6 @@ The `--name` parameter names your cluster so that you can attach to it or stop i
 The deploy sets up Zookeeper, sets up Nimbus, launches the Storm UI on port 8080 on Nimbus, launches a DRPC server on port 3772 on Nimbus, sets up the Supervisors, sets configurations appropriately, sets the appropriate permissions for the security groups, and _attaches_ your machine to the cluster (see below for more information on attaching). 
 
 If you are familiar with the original storm-deploy, note that there is no `--release` parameter to indicate which release of Storm to install. This is because the parameter is not very useful because, as currently designed, storm-deploy will only really work with one version of storm at a time. Currently the release version is fixed at 0.8.3.
-
 
 ### Stopping clusters
 
@@ -117,7 +124,6 @@ Attaching does the following:
 2. Authorizes your computer to access the Nimbus daemon's Thrift port (which is used for submitting topologies)
 3. Authorizes your computer to access the Storm UI on port 8080 on Nimbus
 4. Authorizes your computer to access Ganglia on port 80 on Nimbus
-
 
 ### Getting IPs of cluster nodes
 

@@ -23,9 +23,7 @@
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.exec-script :as exec-script]
 
-   [clj-yaml.core :as clj-yaml]
-
-   [clojure.contrib.java-utils :as java-utils])
+   [clj-yaml.core :as clj-yaml])
   (:use
    [backtype.storm config]
    [pallet compute core resource phase]
@@ -41,14 +39,25 @@
         full-filename
         (conf-filename (merge context {:name "default"}) filename))))
 
-(defn parse-yaml-config-file [context filename]
-  (clj-yaml/parse-string (slurp (conf-filename context filename))))
+(defn generate-config-from-yaml [context filename]
+  "Get default version of config, apply named conf if it exists, and apply commandline hash if supplied"
+  (let [conf-name (first (clojure.string/split filename #"[.]"))
+        conf-hash (context (keyword (str conf-name "-config")))]
+    (merge 
+      (clj-yaml/parse-string
+        (slurp (conf-filename (merge context {:name "default"}) filename)))
+      (clj-yaml/parse-string
+        (slurp (conf-filename context filename)))
+      conf-hash)))
 
 (defn clusters-conf [context]
-  (parse-yaml-config-file context "clusters.yaml"))
+  (let [conf (generate-config-from-yaml context "clusters.yaml")]
+    (println "clusters.yaml")
+    (println conf)
+    conf))
 
 (defn storm-yaml [context]
-  (parse-yaml-config-file context "storm.yaml"))
+  (generate-config-from-yaml context "storm.yaml"))
 
 (defn storm-log-properties-path [context]
   (conf-filename context "storm.log.properties"))
