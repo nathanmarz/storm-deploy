@@ -56,7 +56,7 @@
    request
    (java/java :openjdk)
    (git/git)
-   (leiningen/install)
+   (leiningen/install (if (or (not release) (= release "master") (release> release "0.9.0")) 2 1))
    (zeromq/install :version "2.1.4")
    (zeromq/install-jzmq :version "2.1.0")
    (package/package "daemontools")
