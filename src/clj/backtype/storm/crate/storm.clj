@@ -3,8 +3,8 @@
         [pallet.compute :only [running? primary-ip private-ip]]
         [pallet.compute.jclouds]
         [org.jclouds.compute2 :only [nodes-in-group]]
-
-        [pallet.configure :only [compute-service-properties pallet-config]])
+        [pallet.configure :only [compute-service-properties pallet-config]]
+        [backtype.storm.branch :only [branch>]])
   (:require
    [backtype.storm.crate.zeromq :as zeromq]
    [backtype.storm.crate.leiningen :as leiningen]
@@ -41,12 +41,12 @@
     (map (partial jclouds-node->node compute) (nodes-in-group compute (str "supervisor-" name))))]
     (map primary-ip running-nodes)))
 
-(defn- install-dependencies [request]
+(defn- install-dependencies [request branch]
   (->
    request
    (java/java :openjdk)
    (git/git)
-   (leiningen/install)
+   (leiningen/install (if (or (not branch) (= branch "master") (branch> branch "0.9.0")) 2 1))
    (zeromq/install :version "2.1.4")
    (zeromq/install-jzmq :version "2.1.0")
    (package/package "daemontools")
@@ -107,7 +107,7 @@
 (defn install-supervisor [request branch commit local-dir-path]
   (->
    request
-   (install-dependencies)
+   (install-dependencies branch)
    (directory/directory local-dir-path :owner "storm" :mode "700")
 
    (make branch commit)))
@@ -160,7 +160,7 @@
   (->
    request
    (directory/directory local-dir-path :owner "storm" :mode "700")
-   (install-dependencies)
+   (install-dependencies branch)
    (make branch commit)))
 
 (defn exec-daemon [request]

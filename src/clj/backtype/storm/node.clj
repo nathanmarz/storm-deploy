@@ -23,18 +23,11 @@
    [pallet.resource.exec-script :as exec-script])
   (:use
    [backtype.storm config]
+   [backtype.storm.branch :only [branch>]]
    [pallet compute core resource phase]
    [pallet [utils :only [make-user]]]
    [org.jclouds.compute2 :only [nodes-in-group]]
    [clojure.walk]))
-
-(defn parse-branch [branch]
-  (map #(Integer/parseInt %) (.split branch "\\.")))
-
-(defn branch> [branch1 branch2]
-  (->> (map - (parse-branch branch1) (parse-branch branch2))
-       (take-while #(>= % 0))
-       (some pos?)))
 
 ;; CONSTANTS
 
