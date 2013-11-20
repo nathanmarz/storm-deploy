@@ -7,8 +7,8 @@
 
 (defn debfile [request]
   (if (compute/is-64bit? (session/target-node request))
-      "newrelic-sysmond_1.2.0.257_amd64.deb"
-      "newrelic-sysmond_1.2.0.257_i386.deb"))
+      "newrelic-sysmond_1.3.1.437_amd64.deb"
+      "newrelic-sysmond_1.3.1.437_i386.deb"))
 
 (defn download-url [request]
   (str "http://download.newrelic.com/debian/dists/newrelic/non-free/binary-" 
