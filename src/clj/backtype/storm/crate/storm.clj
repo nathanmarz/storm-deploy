@@ -56,7 +56,7 @@
    request
    (java/java :openjdk)
    (git/git)
-   (leiningen/install (if (or (not release) (= release "master") (release> release "0.9.0")) 2 1))
+   (leiningen/install 2)
    (zeromq/install :version "2.1.4")
    (zeromq/install-jzmq :version "2.1.0")
    (package/package "daemontools")
@@ -100,6 +100,7 @@
      (ln "-s $HOME/`ls | grep zip | sed s/.zip//` storm")
 
      (mkdir -p "daemon")
+     (mkdir "$HOME/storm/log4j")
      (chmod "755" "$HOME/storm/log4j")
      (touch "$HOME/storm/log4j/storm.log.properties")
      (touch "$HOME/storm/log4j/log4j.properties")
