@@ -64,7 +64,7 @@
    (package/package "zip")))
 
 (defn get-release [request release]
-  (let [url "git://github.com/nathanmarz/storm.git"
+  (let [url "git://github.com/korrelate/storm.git"
        rl (if (empty? release) "" release)] ; empty string for pallet
 
     (-> request
