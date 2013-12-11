@@ -46,7 +46,7 @@
   [session & {:keys [user group version home]
               :or {user zookeeper-user
                    group zookeeper-group
-                   version "3.3.5"}
+                   version "3.3.6"}
               :as options}]
   (let [url (url version)
         home (or home (format "%s-%s" install-path version))]
