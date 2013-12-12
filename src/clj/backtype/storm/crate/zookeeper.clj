@@ -33,7 +33,7 @@
    :clientPort 2181
    :initLimit 10
    :syncLimit 5
-   :maxClientCnxns 60
+   :maxClientCnxns 200
    :dataLogDir tx-log-path})
 
 (defn url "Download url"
