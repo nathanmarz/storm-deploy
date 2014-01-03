@@ -100,7 +100,7 @@ The `--name` parameter names your cluster so that you can attach to it or stop i
 
 The deploy sets up Zookeeper, sets up Nimbus, launches the Storm UI on port 8080 on Nimbus, launches a DRPC server on port 3772 on Nimbus, sets up the Supervisors, sets configurations appropriately, sets the appropriate permissions for the security groups, and _attaches_ your machine to the cluster (see below for more information on attaching). 
 
-If you are familiar with the original storm-deploy, note that there is no `--release` parameter to indicate which release of Storm to install. This is because the parameter is not very useful because, as currently designed, storm-deploy will only really work with one version of storm at a time. Currently the release version is fixed at 0.8.3.
+If you are familiar with the original storm-deploy, note that there is no `--release` parameter to indicate which release of Storm to install. This is because the parameter is not very useful because, as currently designed, storm-deploy will only really work with one version of storm at a time. Currently the release version is fixed at 0.9.0.
 
 ### Stopping clusters
 
