@@ -56,7 +56,7 @@
    request
    (java/java :openjdk)
    (git/git)
-   (leiningen/install)
+   (leiningen/install 2)
    (zeromq/install :version "2.1.4")
    (zeromq/install-jzmq :version "2.1.0")
    (package/package "daemontools")
@@ -64,7 +64,7 @@
    (package/package "zip")))
 
 (defn get-release [request release]
-  (let [url "git://github.com/nathanmarz/storm.git"
+  (let [url "git://github.com/korrelate/storm.git"
        rl (if (empty? release) "" release)] ; empty string for pallet
 
     (-> request
@@ -100,6 +100,7 @@
      (ln "-s $HOME/`ls | grep zip | sed s/.zip//` storm")
 
      (mkdir -p "daemon")
+     (mkdir -p "$HOME/storm/log4j")
      (chmod "755" "$HOME/storm/log4j")
      (touch "$HOME/storm/log4j/storm.log.properties")
      (touch "$HOME/storm/log4j/log4j.properties")

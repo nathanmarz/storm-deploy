@@ -161,7 +161,7 @@
                                     :parse-fn read-string]
                                   ["--storm-config" "Hashmap of custom storm config options"
                                     :parse-fn read-string])
-            context (merge opts {:release "0.8.3" ;current version we're set up to work with
+            context (merge opts {:release "0.9.0" ;current version we're set up to work with
                                     :aws aws})]
         (cond
           (opts :stop) (stop! context)
