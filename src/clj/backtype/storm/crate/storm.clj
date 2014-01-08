@@ -201,7 +201,7 @@
       {:supervisor.slots.ports (map #(+ 6700 %) (range (cluster-config :supervisor.slots)))
        :storm.zookeeper.servers ((if on-server zookeeper-private-ips zookeeper-ips) compute name)
        :nimbus.host ((if on-server nimbus-private-ip nimbus-ip) compute name)
-       :drpc.servers ((if on-server nimbus-private-ip nimbus-ip) compute name)
+       :drpc.servers [((if on-server nimbus-private-ip nimbus-ip) compute name)]
        :storm.local.dir "/mnt/storm"})
     :dumper-options {:flow-style :block})) ;storm uses yaml 1.0, so must be block
 
