@@ -1,5 +1,9 @@
 lib/
 logs/
+target/
 *.jar
 pom.xml
 .lein-deps-sum
+.lein-repl-history
+*~
+*.swp

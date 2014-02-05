@@ -14,3 +14,5 @@ supervisor.hardware: "m1.large"
 zookeeper.count: 1
 zookeeper.image: "us-east-1/ami-d726abbe"         #64-bit ubuntu
 zookeeper.hardware: "m1.large"
+
+newrelic.licensekey: my_forty_character_new_relic_license_key
