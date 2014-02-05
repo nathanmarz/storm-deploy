@@ -142,7 +142,11 @@
                    (assoc-with-conf-key :image-id "image")
                    (assoc-with-conf-key :hardware-id "hardware")
                    (assoc-with-conf-key :spot-price "spot.price" :f float)
-                   ))))
+                   )
+        :location (-> {}
+                      (assoc-with-conf-key :location-id "location"))
+        )))
+
 
 (defn zookeeper
   ([name server-spec]
