@@ -4,7 +4,7 @@
         [pallet.compute :exclude [admin-user]]
         [backtype.storm security]
         [pallet.core]
-        [org.jclouds.compute2 :only [nodes-in-group]]
+        [com.palletops.jclouds.compute2 :only [nodes-in-group]]
         [backtype.storm.util :only [with-var-roots]]
         [clojure.tools.logging]
         )

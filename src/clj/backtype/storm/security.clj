@@ -21,74 +21,12 @@
   #^{:author "Juegen Hoetzel, juergen@archlinux.org"
      :doc "A clojure binding for the jclouds AWS security group interface."}
   backtype.storm.security
-  (:require (org.jclouds [compute2 :as compute])
-    [org.jclouds.ec2.ebs2 :as ebs])
-  (:import org.jclouds.ec2.domain.IpProtocol
-           org.jclouds.ec2.domain.SecurityGroup
-           org.jclouds.ec2.services.SecurityGroupClient
-           org.jclouds.ec2.domain.UserIdGroupPair
+  (:require [com.palletops.jclouds.compute2 :as compute]
+            [com.palletops.jclouds.ec2.security-group2 :as sg])
+  (:use [com.palletops.jclouds.ec2.core :only [get-region]])
+  (:import org.jclouds.ec2.domain.UserIdGroupPair
            java.io.DataInputStream
            java.net.URL))
-
-(defn #^SecurityGroupClient
-  sg-service
-  "Returns the SecurityGroup Client associated with the specified  compute service."
-  [compute]
-  (-> compute .getContext .getProviderSpecificContext .getApi .getSecurityGroupServices))
-
-(defn create-group
-  "Creates a new security group.
-
-  e.g. (create-group compute \"Database Server\" \"Description for group\" :region :us-west-1)"
-  [compute name & {:keys [description region]}]
-  (.createSecurityGroupInRegion (sg-service compute) (ebs/get-region region) name (or description name)))
-
-(defn delete-group
-  "Deletes a security group.
-
-  e.g. (delete-group compute \"Database Server\" :region :us-west-1)"
-  [compute name & {:keys [region]}]
-  (.deleteSecurityGroupInRegion (sg-service compute) (ebs/get-region region) name))
-
-(defn groups
-  "Returns a map of GroupName -> org.jclouds.ec2.domain.SecurityGroup instances.
-
-   e.g. (groups compute :region :us-east-1)"
-  [compute & {:keys [region]}]
-  (into {} (for [#^SecurityGroup group (.describeSecurityGroupsInRegion (sg-service compute)
-                                                                        (ebs/get-region region)
-                                                                        (into-array String '()))]
-             [(.getName group) group])))
-
-(defn get-protocol [v]
-  "Coerce argument to a IP Protocol."
-  (cond
-   (instance? IpProtocol v) v
-   (keyword? v) (if-let [p (get {:tcp IpProtocol/TCP
-                                 :udp IpProtocol/UDP
-                                 :icmp IpProtocol/ICMP}
-                                v)]
-                  p
-                  (throw (IllegalArgumentException.
-                          (str "Can't obtain IP protocol from " v " (valid :tcp, :udp and :icmp)"))))
-   (nil? v) IpProtocol/TCP
-   :else (throw (IllegalArgumentException.
-                 (str "Can't obtain IP protocol from argument of type " (type v))))))
-
-(defn authorize
-  "Adds permissions to a security group.
-
-   e.g. (authorize compute \"jclouds#webserver#us-east-1\" 80 :ip-range \"0.0.0.0/0\")
-        (authorize compute \"jclouds#webserver#us-east-1\" [1000,2000] :protocol :udp)"
-
-  [compute group-name port & {:keys [protocol ip-range region]}]
-  (let [group ((groups compute :region region) group-name)
-        [from-port to-port] (if (number? port) [port port] port)]
-    (if group
-      (.authorizeSecurityGroupIngressInRegion
-       (sg-service compute) (ebs/get-region region) (.getName group) (get-protocol protocol) from-port to-port (or ip-range "0.0.0.0/0"))
-      (throw (IllegalArgumentException.
-              (str "Can't find security group for name " group-name region ip-range from-port to-port))))))
 
 (def my-ip
   (memoize
@@ -96,40 +34,24 @@
       (let [is (DataInputStream. (.openStream (URL. "http://whatismyip.akamai.com/")))
             ret (.readLine is)]
         (.close is)
-        ret
-        ))))
+        ret))))
 
 (defn authorizeme [compute group-name port region]
   (try
-    (authorize compute group-name port :ip-range (str (my-ip) "/32") :region region
-    )
-  (catch IllegalStateException _)
-  ))
+    (sg/authorize compute group-name port
+               :ip-range (str (my-ip) "/32")
+               :region region)
+  (catch IllegalStateException _)))
 
 (defn authorize-group
   ([compute region to-group from-group]
-    (authorize-group compute region to-group from-group (:aws-user-id (. compute environment)))
-    )
+     (authorize-group compute region to-group
+                      from-group (:aws-user-id (. compute environment))))
   ([compute region to-group from-group user-id]
     (try
       (.authorizeSecurityGroupIngressInRegion
-        (sg-service compute)
+        (sg/sg-service compute)
         region
         to-group
-        (UserIdGroupPair. "" from-group)
-        )
-    (catch IllegalStateException _)
-    )))
-
-(defn revoke
-  "Revokes permissions from a security group.
-
-   e.g. (revoke compute 80 \"jclouds#webserver#us-east-1\" :protocol :tcp 80 80 :ip-range \"0.0.0.0/0\")"
-  [compute group-name port & {:keys [protocol ip-range region]}]
-  (let [group ((groups compute :region region) group-name)
-        [from-port to-port] (if (number? port) [port port] port)]
-    (if group
-     (.revokeSecurityGroupIngressInRegion
-      (sg-service compute) (ebs/get-region region) (.getName group) (get-protocol protocol) from-port to-port (or ip-range "0.0.0.0/0"))
-     (throw (IllegalArgumentException.
-             (str "Can't find security group for name " group-name))))))
+        (UserIdGroupPair. "" from-group))
+    (catch IllegalStateException _))))

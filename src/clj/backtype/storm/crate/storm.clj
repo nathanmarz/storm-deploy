@@ -1,6 +1,5 @@
 (ns backtype.storm.crate.storm
-  (:use [clojure.contrib.def :only [defnk]]
-        [pallet.compute :only [running? primary-ip private-ip]]
+  (:use [pallet.compute :only [running? primary-ip private-ip]]
         [pallet.compute.jclouds]
         [org.jclouds.compute2 :only [nodes-in-group]]
         [pallet.configure :only [compute-service-properties pallet-config]]
