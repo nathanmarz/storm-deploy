@@ -4,7 +4,7 @@
    [pallet.resource.package :as package]
    [pallet.resource.remote-directory :as remote-directory]
    [pallet.resource.directory :as directory]
-   [pallet.crate.maven :as maven]
+;;   [pallet.crate.maven :as maven]
    [pallet.crate.git :as git]
    [pallet.parameter :as parameter]
    [pallet.crate.iptables :as iptables]
