@@ -22,25 +22,32 @@
   ([] (storm-config "default"))
   ([conf-name] (compute-service-properties (pallet-config) [conf-name])))
 
+(defn running-nodes-for-group [compute group-name cluster-name]
+  (filter
+   running?
+   (map (partial jclouds-node->node compute)
+        (nodes-in-group compute (str group-name "-" cluster-name)))))
+
 (defn nimbus-ip [compute name]
-  (let [running-nodes (filter running? (map (partial jclouds-node->node compute) (nodes-in-group compute (str "nimbus-" name))))]
+  (let [running-nodes
+        (running-nodes-for-group compute "nimbus" name)]
     (assert (= (count running-nodes) 1))
     (primary-ip (first running-nodes))))
 
 (defn nimbus-private-ip [compute name]
-  (let [running-nodes (filter running? (map (partial jclouds-node->node compute) (nodes-in-group compute (str "nimbus-" name))))]
+  (let [running-nodes
+        (running-nodes-for-group compute "nimbus" name)]
     (assert (= (count running-nodes) 1))
     (private-ip (first running-nodes))))
 
-
 (defn zookeeper-ips [compute name]
-  (let [running-nodes (filter running?
-    (map (partial jclouds-node->node compute) (nodes-in-group compute (str "zookeeper-" name))))]
+  (let [running-nodes
+        (running-nodes-for-group compute "zookeeper" name)]
     (map primary-ip running-nodes)))
 
 (defn supervisor-ips [compute name]
-  (let [running-nodes (filter running?
-    (map (partial jclouds-node->node compute) (nodes-in-group compute (str "supervisor-" name))))]
+  (let [running-nodes
+        (running-nodes-for-group compute "supervisor" name)]
     (map primary-ip running-nodes)))
 
 (def mvn3-defaults (defaults/sub-default [:maven3]))
@@ -67,17 +74,16 @@
 (defn- install-dependencies [request branch]
   (->
    request
-   (java/java :openjdk)
+   (java/java :openjdk) ;; needed? installed by storm-base-server-spec?
    (git/git)
-   ;; we install it by default for now... even when not needed
+   ;; we install maven by default for now... even when not needed
    (install-maven-3 :version (mvn3-defaults [:version]))
    (leiningen/install (if (or (not branch) (= branch "master") (branch> branch "0.9.0")) 2 1))
    (zeromq/install :version "2.1.4")
    (zeromq/install-jzmq :version "2.1.0")
    (package/package "daemontools")
    (package/package "unzip")
-   (package/package "zip")
-   ))
+   (package/package "zip")))
 
 (defn get-release [request branch commit]
   (let [url "https://github.com/apache/incubator-storm.git"
@@ -125,19 +131,16 @@
      (touch "$HOME/storm/log4j/storm.log.properties")
      (touch "$HOME/storm/log4j/log4j.properties")
      (chmod "755" "$HOME/storm/log4j/storm.log.properties")
-     (chmod "755" "$HOME/storm/log4j/log4j.properties")
-     )
+     (chmod "755" "$HOME/storm/log4j/log4j.properties"))
     (directory/directory "$HOME/daemon/supervise" :owner "storm" :mode "700")
     (directory/directory "$HOME/storm/logs" :owner "storm" :mode "700")
-    (directory/directory "$HOME/storm/bin" :mode "755")
-    ))
+    (directory/directory "$HOME/storm/bin" :mode "755")))
 
 (defn install-supervisor [request branch commit local-dir-path]
   (->
    request
    (install-dependencies branch)
    (directory/directory local-dir-path :owner "storm" :mode "700")
-
    (make branch commit)))
 
 (defn write-ui-exec [request path]
@@ -151,8 +154,7 @@
               python bin/storm ui")
        :overwrite-changes true
        :literal true
-       :mode 755)
-      ))
+       :mode 755)))
 
 (defn write-drpc-exec [request path]
   (-> request
@@ -165,24 +167,21 @@
               python bin/storm drpc")
        :overwrite-changes true
        :literal true
-       :mode 755)
-      ))
+       :mode 755)))
 
 (defn install-ui [request]
   (-> request
     (directory/directory "$HOME/ui" :owner "storm" :mode "700")
     (directory/directory "$HOME/ui/logs" :owner "storm" :mode "700")
     (directory/directory "$HOME/ui/supervise" :owner "storm" :mode "700")
-    (write-ui-exec "$HOME/ui/run")
-    ))
+    (write-ui-exec "$HOME/ui/run")))
 
 (defn install-drpc [request]
   (-> request
     (directory/directory "$HOME/drpc" :owner "storm" :mode "700")
     (directory/directory "$HOME/drpc/logs" :owner "storm" :mode "700")
     (directory/directory "$HOME/drpc/supervise" :owner "storm" :mode "700")
-    (write-drpc-exec "$HOME/drpc/run")
-    ))
+    (write-drpc-exec "$HOME/drpc/run")))
 
 (defn install-nimbus [request branch commit local-dir-path]
   (->
@@ -197,18 +196,15 @@
    (exec-script/exec-script
     (cd "$HOME/daemon")
     "ps ax | grep backtype.storm | grep -v grep | awk '{print $1}' | xargs kill -9\n\n"
-    "sudo -u storm -H nohup supervise . &"
-    )))
+    "sudo -u storm -H nohup supervise . &")))
 
 (defn exec-ui [request]
   (exec-script/exec-script request
-    "sudo -u storm -H nohup supervise ~storm/ui > nohup-ui.log &"
-    ))
+    "sudo -u storm -H nohup supervise ~storm/ui > nohup-ui.log &"))
 
 (defn exec-drpc [request]
   (exec-script/exec-script request
-    "sudo -u storm -H nohup supervise ~storm/drpc > nohup-drpc.log &"
-    ))
+    "sudo -u storm -H nohup supervise ~storm/drpc > nohup-drpc.log &"))
 
 (defn write-storm-exec [request name]
   (-> request
@@ -220,8 +216,7 @@
                 python bin/storm " name)
       :overwrite-changes true
       :literal true
-      :mode 755)
-      ))
+      :mode 755)))
 
 (defn mk-storm-yaml [name local-storm-file compute]
   (let [newline-join #(apply str (interpose "\n" (apply concat %&)))]
