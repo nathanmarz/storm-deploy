@@ -95,9 +95,9 @@
            branch
            (if (empty? commit) "" (str " and commit " commit)))
   (start-with-nodes! aws name
-                     (node/nimbus-server-spec name branch commit)
-                     (node/supervisor-server-spec name branch commit)
-                     (node/zookeeper-server-spec)))
+                     (node/nimbus-server-spec name branch commit method)
+                     (node/supervisor-server-spec name branch commit method)
+                     (node/zookeeper-server-spec method)))
 
 (defn upgrade-with-nodes! [aws name nimbus supervisor zookeeper]
   (let [nimbus (node/nimbus* name nimbus)
@@ -107,14 +107,14 @@
     (println "Upgrade Complete.")))
 
 
-(defn upgrade! [aws name branch commit]
+(defn upgrade! [aws name branch commit method]
   (println "Upgrading cluster with storm branch "
            branch
            (if (empty? commit) "" (str " and commit " commit)))
   (upgrade-with-nodes! aws name
-                       (node/nimbus-server-spec name branch commit)
-                       (node/supervisor-server-spec name branch commit)
-                       (node/zookeeper-server-spec)))
+                       (node/nimbus-server-spec name branch commit method)
+                       (node/supervisor-server-spec name branch commit method)
+                       (node/zookeeper-server-spec method)))
 
 (defn stop! [aws name]
   (println "Shutting Down nodes...")

@@ -41,7 +41,7 @@
 
 (def *USER* nil)
 
-(defn base-server-spec []
+(defn base-server-spec [method]
   (server-spec
    :phases {:bootstrap (fn [req] (automated-admin-user/automated-admin-user
                                   req
@@ -50,9 +50,9 @@
             :configure (phase-fn
                         (java/java :openjdk))}))
 
-(defn zookeeper-server-spec []
+(defn zookeeper-server-spec [method]
      (server-spec
-      :extends (base-server-spec)
+      :extends (base-server-spec method)
       :phases {:configure (phase-fn
                            (zookeeper/install :version "3.3.6")
                            (zookeeper/configure
@@ -60,9 +60,9 @@
                             :maxClientCnxns 0)
                            (zookeeper/init))}))
 
-(defn storm-base-server-spec [name]
+(defn storm-base-server-spec [name method]
      (server-spec
-      :extends (base-server-spec)
+      :extends (base-server-spec method)
       :phases {:post-configure (phase-fn
                                 (storm/write-storm-yaml
                                  name
@@ -73,9 +73,9 @@
                       (storm/exec-daemon)
                       (ganglia/ganglia-finish))}))
 
-(defn supervisor-server-spec [name branch commit]
+(defn supervisor-server-spec [name branch commit method]
      (server-spec
-      :extends (storm-base-server-spec name)
+      :extends (storm-base-server-spec name method)
       :phases {:configure (phase-fn
                            (ganglia/ganglia-node (nimbus-name name))
                            (storm/install-supervisor
@@ -96,9 +96,9 @@
     (storm/exec-drpc req)
     req))
 
-(defn nimbus-server-spec [name branch commit]
+(defn nimbus-server-spec [name branch commit method]
      (server-spec
-      :extends (storm-base-server-spec name)
+      :extends (storm-base-server-spec name method)
       :phases {:configure (phase-fn
                            (ganglia/ganglia-master (nimbus-name name))
                            (storm/install-nimbus
