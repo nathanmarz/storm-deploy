@@ -4,29 +4,18 @@
    [org.jvyaml YAML]
    [java.io FileReader File])
   (:require
-   [backtype.storm.crate.storm :as storm]
-   [backtype.storm.crate.leiningen :as leiningen]
-   [backtype.storm.crate.zeromq :as zeromq]
    [backtype.storm.crate.ganglia :as ganglia]
-
-   [pallet.crate.git :as git]
-   [pallet.crate.maven :as maven]
-   [pallet.crate.java :as java]
-   [pallet.crate.automated-admin-user :as automated-admin-user]
+   [backtype.storm.crate.storm :as storm]
    [backtype.storm.crate.zookeeper :as zookeeper]
-   [pallet.crate.ssh-key :as ssh-key]
-   [pallet.action.service :as action-service]
-
-   [pallet.resource.directory :as directory]
-   [pallet.resource.service :as service]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.exec-script :as exec-script])
+   [pallet.crate.automated-admin-user :as automated-admin-user]
+   [pallet.crate.java :as java]
+   [pallet.resource.remote-file :as remote-file])
   (:use
    [backtype.storm config]
    [backtype.storm.branch :only [branch>]]
+   [org.jclouds.compute2 :only [nodes-in-group]]
    [pallet compute core resource phase]
    [pallet [utils :only [make-user]]]
-   [org.jclouds.compute2 :only [nodes-in-group]]
    [clojure.walk]))
 
 ;; CONSTANTS
@@ -35,8 +24,7 @@
   (read-yaml-config "clusters.yaml"))
 
 (def storm-yaml-path
-  (.getPath (ClassLoader/getSystemResource "storm.yaml"))
-  )
+  (.getPath (ClassLoader/getSystemResource "storm.yaml")))
 
 (def storm-conf (read-storm-config))
 
@@ -70,8 +58,7 @@
                            (zookeeper/configure
                             :clientPort (storm-conf "storm.zookeeper.port")
                             :maxClientCnxns 0)
-                           (zookeeper/init))
-                           }))
+                           (zookeeper/init))}))
 
 (defn storm-base-server-spec [name]
      (server-spec
@@ -102,14 +89,12 @@
 (defn maybe-install-drpc [req branch]
   (if (or (not branch) (= branch "master") (branch> branch "0.5.3"))
     (storm/install-drpc req)
-    req
-    ))
+    req))
 
 (defn maybe-exec-drpc [req branch]
   (if (or (not branch) (= branch "master") (branch> branch "0.5.3"))
     (storm/exec-drpc req)
-    req
-    ))
+    req))
 
 (defn nimbus-server-spec [name branch commit]
      (server-spec
@@ -131,35 +116,36 @@
                         (maybe-exec-drpc branch))}))
 
 (defn node-spec-from-config [group-name inbound-ports]
-  (letfn [(assoc-with-conf-key [image image-key conf-key & {:keys [f] :or {f identity}}]
+  (letfn [(assoc-with-conf-key
+            [image image-key conf-key & {:keys [f] :or {f identity}}]
             (if-let [val (clusters-conf (str group-name "." conf-key))]
               (assoc image image-key (f val))
               image))]
-       (node-spec
-        :image (-> {:inbound-ports (concat inbound-ports [22])
-                    ;; :security-groups ["backend"]
-                    }
-                   (assoc-with-conf-key :image-id "image")
-                   (assoc-with-conf-key :hardware-id "hardware")
-                   (assoc-with-conf-key :spot-price "spot.price" :f float)
-                   ))))
+    (node-spec
+     :image (-> {:inbound-ports (concat inbound-ports [22])
+                 ;; :security-groups ["backend"]
+                 }
+                (assoc-with-conf-key :image-id "image")
+                (assoc-with-conf-key :hardware-id "hardware")
+                (assoc-with-conf-key :spot-price "spot.price" :f float)))))
 
 (defn zookeeper
   ([name server-spec]
      (group-spec
-      (str "zookeeper-" name)
-      :node-spec (node-spec-from-config "zookeeper"
-                                        [(storm-conf "storm.zookeeper.port")])
-      :extends server-spec))
+         (str "zookeeper-" name)
+       :node-spec (node-spec-from-config
+                   "zookeeper"
+                   [(storm-conf "storm.zookeeper.port")])
+       :extends server-spec))
   ([name]
-     (zookeeper name (zookeeper-server-spec))
-    ))
+     (zookeeper name (zookeeper-server-spec))))
 
 (defn nimbus* [name server-spec]
   (group-spec
     (nimbus-name name)
-    :node-spec (node-spec-from-config "nimbus"
-                                      [(storm-conf "nimbus.thrift.port")])
+    :node-spec (node-spec-from-config
+                "nimbus"
+                [(storm-conf "nimbus.thrift.port")])
     :extends server-spec))
 
 (defn nimbus [name branch commit]
@@ -168,8 +154,9 @@
 (defn supervisor* [name server-spec]
   (group-spec
     (str "supervisor-" name)
-    :node-spec (node-spec-from-config "supervisor"
-                                    (storm-conf "supervisor.slots.ports"))
+    :node-spec (node-spec-from-config
+                "supervisor"
+                (storm-conf "supervisor.slots.ports"))
     :extends server-spec))
 
 (defn supervisor [name branch commit]
