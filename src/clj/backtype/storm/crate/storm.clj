@@ -54,7 +54,7 @@
    ))
 
 (defn get-release [request branch commit]
-  (let [url "git://github.com/nathanmarz/storm.git"
+  (let [url "https://github.com/apache/incubator-storm.git"
        sha1 (if (empty? commit) "" commit)] ; empty string for pallet
 
     (-> request
@@ -65,7 +65,9 @@
         (cd "$HOME/build")
 
         (when-not (directory? "storm")
-          (git clone -b ~branch ~url ))
+          ;; the name of the repo has changed, so we still check it
+          ;; out as 'storm'
+          (git clone -b ~branch ~url storm))
 
         (cd storm)
         (git pull)
