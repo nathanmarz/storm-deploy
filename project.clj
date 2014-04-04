@@ -20,7 +20,7 @@
                  [org.cloudhoist/ssh-key "0.5.0"]
                  [org.cloudhoist/automated-admin-user "0.5.0"]
                  [org.cloudhoist/iptables "0.5.0"]
-                 [org.cloudhoist/maven "0.5.0"]
+;;                 [org.cloudhoist/maven "0.5.0"]
                  [org.cloudhoist/zookeeper "0.5.1"]
                  [org.cloudhoist/nagios-config "0.5.0"]
                  [org.cloudhoist/crontab "0.5.0"]

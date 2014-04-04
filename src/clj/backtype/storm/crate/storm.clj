@@ -13,7 +13,10 @@
    [pallet.resource.package :as package]
    [pallet.resource.directory :as directory]
    [pallet.resource.remote-file :as remote-file]
-   [pallet.action.exec-script :as exec-script]))
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.remote-directory :as remote-directory]
+   [pallet.action.file :as file]
+   [backtype.storm.defaults :as defaults]))
 
 (defn storm-config
   ([] (storm-config "default"))
@@ -40,11 +43,34 @@
     (map (partial jclouds-node->node compute) (nodes-in-group compute (str "supervisor-" name))))]
     (map primary-ip running-nodes)))
 
+(def mvn3-defaults (defaults/sub-default [:maven3]))
+
+(defn- install-maven-3 [s & {:keys [version] :as opts}]
+  (let [version (or version (mvn3-defaults [:version]))
+        url (format (mvn3-defaults [:url-template]) version version)
+        md5-url (format (mvn3-defaults [:md5-url-template]) version version)
+        install-dir (mvn3-defaults [:install-dir])
+        orig-bin-path (str install-dir "/bin/mvn")
+        bin-destination (mvn3-defaults [:bin-destination])]
+    (-> s
+        (directory/directory install-dir)
+        (exec-script/exec-checked-script
+         "Install maven3" (println "Install Maven 3"))
+        (remote-directory/remote-directory
+         install-dir
+         :url url
+         :md5-url md5-url
+         :unpack :tar
+         :tar-options "xz")
+        (file/symbolic-link orig-bin-path bin-destination))))
+
 (defn- install-dependencies [request branch]
   (->
    request
    (java/java :openjdk)
    (git/git)
+   ;; we install it by default for now... even when not needed
+   (install-maven-3 :version (mvn3-defaults [:version]))
    (leiningen/install (if (or (not branch) (= branch "master") (branch> branch "0.9.0")) 2 1))
    (zeromq/install :version "2.1.4")
    (zeromq/install-jzmq :version "2.1.0")
@@ -55,7 +81,8 @@
 
 (defn get-release [request branch commit]
   (let [url "https://github.com/apache/incubator-storm.git"
-       sha1 (if (empty? commit) "" commit)] ; empty string for pallet
+        sha1 (if (empty? commit) "" commit)
+        mvn-bin (mvn3-defaults [:bin-destination])] ; empty string for pallet
 
     (-> request
       (exec-script/exec-checked-script
