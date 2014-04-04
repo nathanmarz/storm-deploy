@@ -145,14 +145,20 @@
          [branch "Branch" "master"]; default branch is master.
          [commit "Commit SHA1" nil]; default is not to pass a commit
          [method "Install method: apache or classic" "apache"]]
-
-        (cond
-         stop? (stop! aws name)
-         start? (start! aws name branch commit method)
-         upgrade? (upgrade! aws name branch commit method)
-         attach? (attach! aws name)
-         ips? (print-all-ips! aws name)
-         :else (println "Must pass --start, --stop , upgrade, --attach or --ips")))))
+        (let [method-key (if (= method "classic")
+                       :classic
+                       (if (= method "apache")
+                         :apache
+                         :invalid))]
+          (if-not (= :invalid method-key)
+            (cond
+             stop? (stop! aws name)
+             start? (start! aws name branch commit method-key)
+             upgrade? (upgrade! aws name branch commit method-key)
+             attach? (attach! aws name)
+             ips? (print-all-ips! aws name)
+             :else (println "Must pass --start, --stop , upgrade, --attach or --ips"))
+            (println "invalid method " method))))))
   (shutdown-agents)
   (println "Done.")
   (System/exit 0))
