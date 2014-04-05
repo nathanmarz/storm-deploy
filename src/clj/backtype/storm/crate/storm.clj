@@ -3,7 +3,8 @@
         [pallet.compute.jclouds]
         [org.jclouds.compute2 :only [nodes-in-group]]
         [pallet.configure :only [compute-service-properties pallet-config]]
-        [backtype.storm.branch :only [branch>]])
+        [backtype.storm.branch :only [branch>]]
+        [pallet.thread-expr :only [if->]])
   (:require
    [backtype.storm.crate.zeromq :as zeromq]
    [backtype.storm.crate.leiningen :as leiningen]
@@ -71,25 +72,29 @@
          :tar-options "xz")
         (file/symbolic-link orig-bin-path bin-destination))))
 
-(defn- install-dependencies [request branch]
+(defn- install-dependencies [request branch method]
   (->
    request
-   (java/java :openjdk) ;; needed? installed by storm-base-server-spec?
+   ;;(java/java :openjdk) ;; needed? installed by storm-base-server-spec?
    (git/git)
-   ;; we install maven by default for now... even when not needed
-   (install-maven-3 :version (mvn3-defaults [:version]))
-   (leiningen/install (if (or (not branch) (= branch "master") (branch> branch "0.9.0")) 2 1))
-   (zeromq/install :version "2.1.4")
-   (zeromq/install-jzmq :version "2.1.0")
+   (if-> (= method :apache)
+         ;; apache releases are built with maven 3 and use no zeromq
+         (install-maven-3 :version (mvn3-defaults [:version]))
+         ;; classic releases are build with leiningen and use zeromq
+         (->
+          (leiningen/install
+           (if (or (not branch) (= branch "master") (branch> branch "0.9.0")) 2 1))
+          (zeromq/install :version (defaults/defaults [:zeromq :version]))
+          (zeromq/install-jzmq :version (defaults/defaults [:jzmq :version]))))
    (package/package "daemontools")
    (package/package "unzip")
    (package/package "zip")))
 
-(defn get-release [request branch commit]
+(defn get-release [request branch commit method]
   (let [url "https://github.com/apache/incubator-storm.git"
-        sha1 (if (empty? commit) "" commit)
-        mvn-bin (mvn3-defaults [:bin-destination])] ; empty string for pallet
-
+        sha1 (if (empty? commit) "" commit)  ; empty string for pallet
+        mvn-bin (mvn3-defaults [:bin-destination])
+        classic? (= :method :classic)]
     (-> request
       (exec-script/exec-checked-script
         "Build storm"
@@ -104,20 +109,28 @@
 
         (cd storm)
         (git pull)
-        (if (not (empty? ~sha1)) 
-          (git checkout -b newbranch ~sha1)
-          )
-        (bash "bin/build_release.sh")
-        (cp "*.zip $HOME/")))))
+        (if (not (empty? ~sha1))
+          (git checkout -b newbranch ~sha1))
 
-(defn make [request branch commit]
+        (if ~classic?
+          (do
+            (bash "bin/build_release.sh")
+            (cp "*.zip $HOME/"))
+          (do
+            (mvn "install" "-Dmaven.test.skip=true")
+            (cd "storm-dist/binary/")
+            ;; prevent being asked for the gpg password
+            (mvn "package" "-Dmaven.test.skip=true" "-Dgpg.skip=true")
+            (cp "target/*.zip $HOME/")))))))
+
+(defn make [request branch commit method]
   (->
    request
    (exec-script/exec-checked-script
      "clean up home"
      (cd "$HOME")
      (rm "-f *.zip"))
-   (get-release branch commit)
+   (get-release branch commit method)
    (exec-script/exec-checked-script
      "prepare daemon"
      (cd "$HOME")
@@ -136,12 +149,12 @@
     (directory/directory "$HOME/storm/logs" :owner "storm" :mode "700")
     (directory/directory "$HOME/storm/bin" :mode "755")))
 
-(defn install-supervisor [request branch commit local-dir-path]
+(defn install-supervisor [request branch commit method local-dir-path]
   (->
    request
-   (install-dependencies branch)
+   (install-dependencies branch method)
    (directory/directory local-dir-path :owner "storm" :mode "700")
-   (make branch commit)))
+   (make branch commit method)))
 
 (defn write-ui-exec [request path]
   (-> request
@@ -183,12 +196,12 @@
     (directory/directory "$HOME/drpc/supervise" :owner "storm" :mode "700")
     (write-drpc-exec "$HOME/drpc/run")))
 
-(defn install-nimbus [request branch commit local-dir-path]
+(defn install-nimbus [request branch commit method local-dir-path]
   (->
    request
    (directory/directory local-dir-path :owner "storm" :mode "700")
-   (install-dependencies branch)
-   (make branch commit)))
+   (install-dependencies branch method)
+   (make branch commit method)))
 
 (defn exec-daemon [request]
   (->

@@ -7,6 +7,7 @@
    [backtype.storm.crate.ganglia :as ganglia]
    [backtype.storm.crate.storm :as storm]
    [backtype.storm.crate.zookeeper :as zookeeper]
+   [backtype.storm.defaults :as defaults]
    [pallet.crate.automated-admin-user :as automated-admin-user]
    [pallet.crate.java :as java]
    [pallet.resource.remote-file :as remote-file])
@@ -51,14 +52,15 @@
                         (java/java :openjdk))}))
 
 (defn zookeeper-server-spec [method]
-     (server-spec
-      :extends (base-server-spec method)
-      :phases {:configure (phase-fn
-                           (zookeeper/install :version "3.3.6")
-                           (zookeeper/configure
-                            :clientPort (storm-conf "storm.zookeeper.port")
-                            :maxClientCnxns 0)
-                           (zookeeper/init))}))
+  (let [zookeeper-version (defaults/default [:zookeeper :version])]
+    (server-spec
+     :extends (base-server-spec method)
+     :phases {:configure (phase-fn
+                          (zookeeper/install :version zookeeper-version)
+                          (zookeeper/configure
+                           :clientPort (storm-conf "storm.zookeeper.port")
+                           :maxClientCnxns 0)
+                          (zookeeper/init))})))
 
 (defn storm-base-server-spec [name method]
      (server-spec
@@ -102,15 +104,14 @@
       :phases {:configure (phase-fn
                            (ganglia/ganglia-master (nimbus-name name))
                            (storm/install-nimbus
-                            branch commit
+                            branch commit method
                             "/mnt/storm")
                            (storm/install-ui)
                            (maybe-install-drpc branch))
                :post-configure (phase-fn
                                 (ganglia/ganglia-finish)
                                 (storm/write-storm-exec
-                                 "nimbus")
-                                 )
+                                 "nimbus"))
                :exec (phase-fn
                         (storm/exec-ui)
                         (maybe-exec-drpc branch))}))

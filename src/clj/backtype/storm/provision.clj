@@ -90,7 +90,7 @@
     (info "Provisioning Complete.")
     (print-all-ips! aws name)))
 
-(defn start! [aws name branch commit]
+(defn start! [aws name branch commit method]
   (println "Starting cluster with storm branch "
            branch
            (if (empty? commit) "" (str " and commit " commit)))

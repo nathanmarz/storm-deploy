@@ -10,8 +10,9 @@
     :version "3.2.1"
     :install-dir "/usr/local/maven3"
     :bin-destination "/usr/bin/mvn"}
-   :zookeeper
-   {:version "3.3.6"}}
+   :zookeeper {:version "3.3.6"}
+   :zeromq {:version "2.1.4"}
+   :jzmq {:version "2.1.0"}}
   )
 
 (defn default [key-seq]
