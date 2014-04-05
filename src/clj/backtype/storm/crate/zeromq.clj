@@ -46,7 +46,7 @@
   [request & {:keys [version]}]
   (->
    request
-   (maven/package)
+;;   (maven/package) ;; mvn not used?
    (git/git)
    (package/packages
     :yum ["libtool" "pkg-config" "autoconf"]
