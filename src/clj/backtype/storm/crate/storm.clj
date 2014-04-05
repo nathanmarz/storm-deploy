@@ -70,6 +70,7 @@
          :md5-url md5-url
          :unpack :tar
          :tar-options "xz")
+        ;; link the maven exec so it is in the path
         (file/symbolic-link orig-bin-path bin-destination))))
 
 (defn- install-dependencies [request branch method]
@@ -92,52 +93,66 @@
 
 (defn get-release [request branch commit method]
   (let [url "https://github.com/apache/incubator-storm.git"
-        sha1 (if (empty? commit) "" commit)  ; empty string for pallet
+        sha1 (if (empty? commit) "" commit) ; empty string for pallet
         mvn-bin (mvn3-defaults [:bin-destination])
         classic? (= method :classic)]
     (-> request
-      (exec-script/exec-checked-script
-        "Build storm"
-        (cd "$HOME")
-        (mkdir -p "build")
-        (cd "$HOME/build")
+        (exec-script/exec-checked-script
+         "Build storm"
+         (cd "$HOME")
+         (mkdir -p "build")
+         (cd "$HOME/build")
 
-        (when-not (directory? "storm")
-          ;; the name of the repo has changed, so we still check it
-          ;; out as 'storm'
-          (git clone -b ~branch ~url storm))
+         ;; clone the storm repo
+         (when-not (directory? "storm")
+           ;; the name of the repo has changed, so we still check it
+           ;; out as 'storm'
+           (git clone -b ~branch ~url "storm"))
+         (cd storm)
 
-        (cd storm)
-        (git pull)
-        (if (not (empty? ~sha1))
-          (git checkout -b newbranch ~sha1))
+         ;; checkout the branch (and possibly sha)
+         (git pull)
+         (if (not (empty? ~sha1))
+           (git checkout -b newbranch ~sha1))
 
-        (if ~classic?
-          (do
-            (bash "bin/build_release.sh")
-            (cp "*.zip $HOME/"))
-          (do
-            (mvn "install" "-Dmaven.test.skip=true")
-            (cd "storm-dist/binary/")
-            ;; prevent being asked for the gpg password
-            (mvn "package" "-Dmaven.test.skip=true" "-Dgpg.skip=true")
-            (cp "target/*.zip $HOME/")))))))
+         ;; build storm
+         (if ~classic?
+           ;; in classic mode we build using the bin/build_release.sh script
+           (do
+             (bash "bin/build_release.sh")
+             ;; the install script expects the zip file in ~storm
+             (cp "*.zip $HOME/"))
+           ;; the apache versions use maven3
+           (do
+             (mvn "install" "-Dmaven.test.skip=true")
+             (cd "storm-dist/binary/")
+             ;; prevent being asked for the gpg password
+             (mvn "package" "-Dmaven.test.skip=true" "-Dgpg.skip=true")
+             ;; the install script expects the zip file in ~storm
+             (cp "target/*.zip $HOME/")))))))
 
 (defn make [request branch commit method]
   (->
    request
+   ;; clean up any zip file from the ~storm/
    (exec-script/exec-checked-script
      "clean up home"
      (cd "$HOME")
      (rm "-f *.zip"))
+   ;; get the desired version of the storm .zip file
    (get-release branch commit method)
    (exec-script/exec-checked-script
-     "prepare daemon"
+    "prepare daemon"
+
+    ;; unzip the storm .zip file
      (cd "$HOME")
      (unzip "-o *.zip")
+     ;; remove the build directory (if it's there)
      (rm "-f storm")
+
      (ln "-s $HOME/`ls | grep zip | sed s/.zip//` storm")
 
+     ;; create needed directories
      (mkdir -p "daemon")
      (mkdir -p "$HOME/storm/log4j")
      (chmod "755" "$HOME/storm/log4j")
