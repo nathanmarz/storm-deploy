@@ -40,10 +40,10 @@
        (doseq [tag all-tags]
          (print-ips-for-tag! aws tag))))
 
-(defn converge! [name branch commit aws sn zn nn]
-  (converge {(node/nimbus name branch commit) nn
-             (node/supervisor name branch commit) sn
-             (node/zookeeper name) zn}
+(defn converge! [name branch commit method aws sn zn nn]
+  (converge {(node/nimbus name branch commit method) nn
+             (node/supervisor name branch commit method) sn
+             (node/zookeeper name method) zn}
             :compute aws))
 
 (defn sync-storm-conf-dir [aws name]
@@ -118,7 +118,7 @@
 
 (defn stop! [aws name]
   (println "Shutting Down nodes...")
-  (converge! name nil nil aws 0 0 0)
+  (converge! name nil nil nil aws 0 0 0)
   (println "Shutdown Finished."))
 
 (defn mk-aws []

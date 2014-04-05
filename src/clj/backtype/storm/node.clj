@@ -131,15 +131,15 @@
                 (assoc-with-conf-key :spot-price "spot.price" :f float)))))
 
 (defn zookeeper
-  ([name server-spec]
+  ([name server-spec method]
      (group-spec
          (str "zookeeper-" name)
        :node-spec (node-spec-from-config
                    "zookeeper"
                    [(storm-conf "storm.zookeeper.port")])
        :extends server-spec))
-  ([name]
-     (zookeeper name (zookeeper-server-spec))))
+  ([name method]
+     (zookeeper name (zookeeper-server-spec method) method )))
 
 (defn nimbus* [name server-spec]
   (group-spec
@@ -149,8 +149,8 @@
                 [(storm-conf "nimbus.thrift.port")])
     :extends server-spec))
 
-(defn nimbus [name branch commit]
-  (nimbus* name (nimbus-server-spec name branch commit)))
+(defn nimbus [name branch commit method]
+  (nimbus* name (nimbus-server-spec name branch commit method)))
 
 (defn supervisor* [name server-spec]
   (group-spec
@@ -160,7 +160,7 @@
                 (storm-conf "supervisor.slots.ports"))
     :extends server-spec))
 
-(defn supervisor [name branch commit]
-  (supervisor* name (supervisor-server-spec name branch commit)))
+(defn supervisor [name branch commit method]
+  (supervisor* name (supervisor-server-spec name branch commit method)))
 
 
