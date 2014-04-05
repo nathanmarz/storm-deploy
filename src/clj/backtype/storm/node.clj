@@ -81,7 +81,7 @@
       :phases {:configure (phase-fn
                            (ganglia/ganglia-node (nimbus-name name))
                            (storm/install-supervisor
-                            branch commit
+                            branch commit method
                             "/mnt/storm"))
                :post-configure (phase-fn
                                 (ganglia/ganglia-finish)
