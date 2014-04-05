@@ -59,7 +59,7 @@
         region (my-region)]
     (info "Attaching to Available Cluster...")
     (sync-storm-conf-dir aws name)
-    (authorizeme aws nimbus-group (jclouds-group "nimbus-" name) 80 region)
+    (authorizeme aws nimbus-group  80 region)
     (authorizeme aws nimbus-group (node/storm-conf "nimbus.thrift.port") region)
     (authorizeme aws nimbus-group (node/storm-conf "ui.port") region)
     (authorizeme aws nimbus-group (node/storm-conf "drpc.port") region)
@@ -72,7 +72,7 @@
         sn (int (node/clusters-conf "supervisor.count" 1))
         zn (int (node/clusters-conf "zookeeper.count" 1))
         region (my-region)
-        nimbus-group (jclouds-group "numbus-" name)
+        nimbus-group (jclouds-group "nimbus-" name)
         supervisor-group (jclouds-group "supervisor-" name)]
     (infof "Provisioning nodes [nn=1, sn=%d, zn=%d]" sn zn)
     (converge {nimbus 1 supervisor sn zookeeper zn} :compute aws)
