@@ -94,7 +94,7 @@
   (let [url "https://github.com/apache/incubator-storm.git"
         sha1 (if (empty? commit) "" commit)  ; empty string for pallet
         mvn-bin (mvn3-defaults [:bin-destination])
-        classic? (= :method :classic)]
+        classic? (= method :classic)]
     (-> request
       (exec-script/exec-checked-script
         "Build storm"
