@@ -7,7 +7,7 @@
     "http://mirrors.ibiblio.org/apache/maven/maven-3/%s/binaries/apache-maven-%s-bin.tar.gz"
     :md5-url-template
     "http://www.apache.org/dist/maven/maven-3/%s/binaries/apache-maven-%s-bin.tar.gz.md5"
-    :version "3.2.1"
+    :version "3.2.5"
     :install-dir "/usr/local/maven3"
     :bin-destination "/usr/bin/mvn"}
    :zookeeper {:version "3.3.6"}

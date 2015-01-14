@@ -127,8 +127,10 @@
                  ;; :security-groups ["backend"]
                  }
                 (assoc-with-conf-key :image-id "image")
+                (assoc-with-conf-key :spot-price "spot.price" :f float))
+     :hardware (-> {}
                 (assoc-with-conf-key :hardware-id "hardware")
-                (assoc-with-conf-key :spot-price "spot.price" :f float)))))
+))))
 
 (defn zookeeper
   ([name server-spec method]
